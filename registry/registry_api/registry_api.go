@@ -1,0 +1,104 @@
+package registry_api
+
+import (
+	"encoding/pem"
+	"errors"
+	"log"
+	"net/http"
+	"strings"
+
+	"ssle/registry/config"
+	"ssle/registry/state"
+	"ssle/registry/utils"
+
+	"aidanwoods.dev/go-paseto"
+	"go.etcd.io/etcd/server/v3/etcdserver"
+)
+
+type RegistryAPIState struct {
+	state      *state.State
+	etcdServer *etcdserver.EtcdServer
+}
+
+func (state RegistryAPIState) verifyToken(r *http.Request, implicit []byte) (*paseto.Token, error) {
+	rawToken := r.Header.Get(utils.TokenHeader)
+	if rawToken == "" {
+		return nil, errors.New("Authorization header must be set")
+	}
+	rawToken, foundType := strings.CutPrefix(rawToken, "Bearer ")
+	if !foundType {
+		return nil, errors.New("Authorization header does not begin with Bearer type")
+	}
+
+	token, err := paseto.NewParser().ParseV4Local(state.state.TokenKey, rawToken, implicit)
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
+}
+
+func (state RegistryAPIState) extractNameLocation(r *http.Request) (string, string, error) {
+	token, err := state.verifyToken(r, []byte("DC"))
+	if err != nil {
+		return "", "", err
+	}
+
+	name, err := utils.ExtractTokenKey[string](token, "name")
+	if err != nil {
+		return "", "", err
+	}
+	location, err := utils.ExtractTokenKey[string](token, "location")
+	if err != nil {
+		return "", "", err
+	}
+
+	return name, location, nil
+}
+
+type ConfigResponse struct {
+	CACrt    string `json:"caCrt"`
+	Name     string `json:"name"`
+	Location string `json:"location"`
+}
+
+func (state RegistryAPIState) config(w http.ResponseWriter, r *http.Request) {
+	name, location, err := state.extractNameLocation(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	CACrt := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: state.state.CA.Leaf.Raw,
+	})
+
+	utils.HttpRespondJson(w, http.StatusOK, ConfigResponse{
+		CACrt:    string(CACrt),
+		Name:     name,
+		Location: location,
+	})
+}
+
+func StartRegistryAPIHTTPServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
+	apiState := RegistryAPIState{
+		state:      state,
+		etcdServer: etcdServer,
+	}
+
+	handler := http.NewServeMux()
+	handler.HandleFunc("GET /config", apiState.config)
+	handler.HandleFunc("POST /svc/{service}", apiState.registerService)
+	handler.HandleFunc("GET /svc/{service}", apiState.getService)
+	handler.HandleFunc("GET /discovery", apiState.prometheusDiscovery)
+
+	server := &http.Server{
+		Addr:    config.RegistryAPIAdvertiseHost(),
+		Handler: handler,
+	}
+
+	go func() {
+		log.Printf("Starting Registry API HTTP Server at %v", server.Addr)
+		log.Fatal(server.ListenAndServeTLS(state.ServerCrtFile, state.ServerKeyFile))
+	}()
+}

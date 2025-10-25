@@ -13,17 +13,16 @@ import (
 	"time"
 
 	"ssle/registry/config"
+	"ssle/registry/schema"
 	"ssle/registry/state"
+	"ssle/registry/utils"
 
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 )
 
-const (
-	ContentTypeJSON = "application/json"
-)
-
 type PeerAPIState struct {
+	state      *state.State
 	etcdServer *etcdserver.EtcdServer
 }
 
@@ -32,17 +31,12 @@ type AddPeerRequest struct {
 }
 
 func (state PeerAPIState) listPeerHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", ContentTypeJSON)
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(state.etcdServer.Cluster().Members())
+	utils.HttpRespondJson(w, http.StatusOK, state.etcdServer.Cluster().Members())
 }
 
 func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request) {
-	var addPeerReq AddPeerRequest
-
-	err := json.NewDecoder(r.Body).Decode(&addPeerReq)
+	addPeerReq, err := utils.DeserializeRequestBody[AddPeerRequest](w, r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -65,14 +59,44 @@ func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 }
 
-func StartPeerAPIHTTPServer(config config.Config, state state.State, etcdServer *etcdserver.EtcdServer) {
+type AddDataCenterRequest struct {
+	Name     schema.PathSegment `json:"name" validate:"required"`
+	Location schema.PathSegment `json:"location" validate:"required"`
+}
+
+type AddDataCenterResponse struct {
+	Token string `json:"token"`
+}
+
+func (state PeerAPIState) addDataCenterHandler(w http.ResponseWriter, r *http.Request) {
+	addDCReq, err := utils.DeserializeRequestBody[AddDataCenterRequest](w, r)
+	if err != nil {
+		return
+	}
+
+	token := utils.NewToken(365 * 24 * time.Hour)
+	token.SetString("name", addDCReq.Name.String())
+	token.SetString("location", addDCReq.Location.String())
+
+	encryptedToken := token.V4Encrypt(state.state.TokenKey, []byte("DC"))
+
+	utils.HttpRespondJson(w, http.StatusCreated, AddDataCenterResponse{
+		Token: encryptedToken,
+	})
+}
+
+func StartPeerAPIHTTPServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
 	apiState := PeerAPIState{
+		state:      state,
 		etcdServer: etcdServer,
 	}
 
 	handler := http.NewServeMux()
-	handler.HandleFunc("GET /members", apiState.listPeerHandler)
-	handler.HandleFunc("POST /add", apiState.addPeerHandler)
+	// Peer endpoints
+	handler.HandleFunc("GET /peers", apiState.listPeerHandler)
+	handler.HandleFunc("POST /peers/add", apiState.addPeerHandler)
+	// DC endpoints
+	handler.HandleFunc("POST /dc/add", apiState.addDataCenterHandler)
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(state.CA.Leaf)
@@ -92,7 +116,7 @@ func StartPeerAPIHTTPServer(config config.Config, state state.State, etcdServer 
 	}()
 }
 
-func createHTTPClient(config config.Config, state state.State) *http.Client {
+func createHTTPClient(state state.State) *http.Client {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(state.CA.Leaf)
 
@@ -107,10 +131,10 @@ func createHTTPClient(config config.Config, state state.State) *http.Client {
 }
 
 func ClusterRequestAddPeer(clusterUrl url.URL, config config.Config, state state.State) error {
-	client := createHTTPClient(config, state)
+	client := createHTTPClient(state)
 
 	url := clusterUrl
-	url.Path = "/add"
+	url.Path = "/peers/add"
 
 	body, err := json.Marshal(AddPeerRequest{
 		AdvertisedURLS: config.EtcdAdvertiseURLs(),
@@ -119,7 +143,7 @@ func ClusterRequestAddPeer(clusterUrl url.URL, config config.Config, state state
 		return err
 	}
 
-	resp, err := client.Post(url.String(), ContentTypeJSON, bytes.NewReader(body))
+	resp, err := client.Post(url.String(), utils.ContentTypeJSON, bytes.NewReader(body))
 	if err != nil {
 		return err
 	}
@@ -138,10 +162,10 @@ func ClusterRequestAddPeer(clusterUrl url.URL, config config.Config, state state
 }
 
 func ClusterRequestGetPeers(clusterUrl url.URL, config config.Config, state state.State) ([]membership.Member, error) {
-	client := createHTTPClient(config, state)
+	client := createHTTPClient(state)
 
 	url := clusterUrl
-	url.Path = "/members"
+	url.Path = "/peers"
 
 	resp, err := client.Get(url.String())
 	if err != nil {

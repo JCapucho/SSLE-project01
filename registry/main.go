@@ -10,6 +10,7 @@ import (
 	"ssle/registry/config"
 	"ssle/registry/etcd"
 	"ssle/registry/peer_api"
+	"ssle/registry/registry_api"
 	"ssle/registry/state"
 )
 
@@ -34,7 +35,7 @@ func main() {
 			log.Fatalf("Failed to get cluster members: %v", err)
 		}
 	}
-	etcdConfig := etcd.CreateEtcdConfig(members, state, config)
+	etcdConfig := etcd.CreateEtcdConfig(members, &state, &config)
 
 	e, err := embed.StartEtcd(etcdConfig)
 	if err != nil {
@@ -42,7 +43,8 @@ func main() {
 	}
 	defer e.Close()
 
-	peer_api.StartPeerAPIHTTPServer(config, state, e.Server)
+	peer_api.StartPeerAPIHTTPServer(&config, &state, e.Server)
+	registry_api.StartRegistryAPIHTTPServer(&config, &state, e.Server)
 
 	select {
 	case <-e.Server.ReadyNotify():

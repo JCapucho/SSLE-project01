@@ -22,6 +22,9 @@ import (
 	"time"
 
 	"ssle/registry/config"
+	"ssle/registry/schema"
+
+	"aidanwoods.dev/go-paseto"
 )
 
 type State struct {
@@ -34,6 +37,8 @@ type State struct {
 	ServerKeyPair tls.Certificate
 	ServerCrtFile string
 	ServerKeyFile string
+
+	TokenKey paseto.V4SymmetricKey
 }
 
 func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
@@ -76,6 +81,20 @@ func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
 	return crt, key
 }
 
+func addHostnameToCert(cert *x509.Certificate, hostname schema.Hostname) {
+	if hostname.IsAddress() {
+		repr := hostname.Address().AsSlice()
+		if !slices.ContainsFunc(cert.IPAddresses, func(a net.IP) bool { return a.Equal(repr) }) {
+			cert.IPAddresses = append(cert.IPAddresses, repr)
+		}
+	} else {
+		repr := hostname.Fqdn()
+		if !slices.Contains(cert.DNSNames, repr) {
+			cert.DNSNames = append(cert.DNSNames, repr)
+		}
+	}
+}
+
 func createNodeCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
@@ -86,29 +105,23 @@ func createNodeCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
 	// 90 Days
 	notAfter := notBefore.Add(90 * 24 * time.Hour)
 
-	IPAddresses := []net.IP{}
-	DNSNames := []string{}
-
-	if config.PeerAdvertiseHostname.IsAddress() {
-		IPAddresses = []net.IP{config.PeerAdvertiseHostname.Address().AsSlice()}
-	} else {
-		DNSNames = []string{config.PeerAdvertiseHostname.Fqdn()}
-	}
-
 	template := x509.Certificate{
 		Subject: pkix.Name{
 			Organization:       []string{"SSLE Project 01"},
 			OrganizationalUnit: []string{"Servers"},
 			CommonName:         config.Name,
 		},
-		IPAddresses:           IPAddresses,
-		DNSNames:              DNSNames,
+		IPAddresses:           []net.IP{},
+		DNSNames:              []string{},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
 		BasicConstraintsValid: true,
 	}
+
+	addHostnameToCert(&template, config.PeerAdvertiseHostname)
+	addHostnameToCert(&template, config.RegistryAdvertiseHostname)
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, CA.Leaf, pub, CA.PrivateKey)
 	if err != nil {
@@ -222,6 +235,15 @@ func LoadState(config config.Config) State {
 	caCrtFile, _, CA := loadStateCA(config, token, start)
 	serverCrtFile, serverKeyFile, serverKeyPair := loadStateNodeCrt(config, CA)
 
+	tokenKeyRaw, err := hkdf.Expand(sha256.New, token, "REGISTRY", 32)
+	if err != nil {
+		panic(err.Error())
+	}
+	tokenKey, err := paseto.V4SymmetricKeyFromBytes(tokenKeyRaw)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	return State{
 		Token:   token,
 		EtcdDir: filepath.Join(config.Dir, "etcd"),
@@ -232,5 +254,7 @@ func LoadState(config config.Config) State {
 		ServerKeyPair: serverKeyPair,
 		ServerCrtFile: serverCrtFile,
 		ServerKeyFile: serverKeyFile,
+
+		TokenKey: tokenKey,
 	}
 }
