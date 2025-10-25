@@ -1,4 +1,4 @@
-package schema
+package schemas
 
 import (
 	"encoding/json"
@@ -7,8 +7,10 @@ import (
 	"net/netip"
 	"strings"
 
-	"ssle/registry/utils"
+	"github.com/go-playground/validator/v10"
 )
+
+var Validate *validator.Validate = validator.New(validator.WithRequiredStructEnabled())
 
 type PathSegment string
 
@@ -58,7 +60,7 @@ func ParseHostname(v string) (Hostname, error) {
 		return HostnameFromAddr(ip), nil
 	}
 
-	err = utils.Validate.VarWithKey("hostname", v, "fqdn")
+	err = Validate.VarWithKey("hostname", v, "fqdn")
 	return HostnameFromFqdn(v), err
 }
 
@@ -174,4 +176,25 @@ func PrometheusServiceFromServiceSpec(spec *ServiceSpec) *PrometheusService {
 			Instance:   spec.Instance.String(),
 		},
 	}
+}
+
+type RegisterServiceRequest struct {
+	Instance PathSegment `json:"instance" validate:"required"`
+
+	Addresses   []Hostname `json:"addrs"`
+	Ports       []PortSpec `json:"ports"`
+	MetricsPort uint16     `json:"metricsPort"`
+}
+
+func (spec *RegisterServiceRequest) UnmarshalJSON(data []byte) error {
+	type RawRequest RegisterServiceRequest
+	raw := RawRequest{
+		Addresses: []Hostname{},
+		Ports:     []PortSpec{},
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*spec = RegisterServiceRequest(raw)
+	return nil
 }

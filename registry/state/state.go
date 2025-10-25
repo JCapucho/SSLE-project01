@@ -22,9 +22,10 @@ import (
 	"time"
 
 	"ssle/registry/config"
-	"ssle/registry/schema"
 
 	"aidanwoods.dev/go-paseto"
+
+	"ssle/schemas"
 )
 
 type State struct {
@@ -81,7 +82,7 @@ func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
 	return crt, key
 }
 
-func addHostnameToCert(cert *x509.Certificate, hostname schema.Hostname) {
+func addHostnameToCert(cert *x509.Certificate, hostname schemas.Hostname) {
 	if hostname.IsAddress() {
 		repr := hostname.Address().AsSlice()
 		if !slices.ContainsFunc(cert.IPAddresses, func(a net.IP) bool { return a.Equal(repr) }) {

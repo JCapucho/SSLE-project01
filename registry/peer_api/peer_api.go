@@ -12,13 +12,14 @@ import (
 	"net/url"
 	"time"
 
-	"ssle/registry/config"
-	"ssle/registry/schema"
-	"ssle/registry/state"
-	"ssle/registry/utils"
-
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+
+	"ssle/schemas"
+
+	"ssle/registry/config"
+	"ssle/registry/state"
+	"ssle/registry/utils"
 )
 
 type PeerAPIState struct {
@@ -60,8 +61,8 @@ func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request)
 }
 
 type AddDataCenterRequest struct {
-	Name     schema.PathSegment `json:"name" validate:"required"`
-	Location schema.PathSegment `json:"location" validate:"required"`
+	Name     schemas.PathSegment `json:"name" validate:"required"`
+	Location schemas.PathSegment `json:"location" validate:"required"`
 }
 
 type AddDataCenterResponse struct {
@@ -102,7 +103,7 @@ func StartPeerAPIHTTPServer(config *config.Config, state *state.State, etcdServe
 	caCertPool.AddCert(state.CA.Leaf)
 
 	server := &http.Server{
-		Addr:    config.PeerAPIAdvertiseHost(),
+		Addr:    config.PeerAPIListenHost(),
 		Handler: handler,
 		TLSConfig: &tls.Config{
 			ClientCAs:  caCertPool,

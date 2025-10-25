@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"aidanwoods.dev/go-paseto"
-	"github.com/go-playground/validator/v10"
+
+	"ssle/schemas"
 )
 
 const (
@@ -42,8 +43,6 @@ func ExtractTokenKey[T any](token *paseto.Token, key string) (T, error) {
 	return val, nil
 }
 
-var Validate *validator.Validate = validator.New(validator.WithRequiredStructEnabled())
-
 func DeserializeRequestBody[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 	var req T
 
@@ -53,7 +52,7 @@ func DeserializeRequestBody[T any](w http.ResponseWriter, r *http.Request) (T, e
 		return req, err
 	}
 
-	err = Validate.Struct(req)
+	err = schemas.Validate.Struct(req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return req, err

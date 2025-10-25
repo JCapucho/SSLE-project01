@@ -28,6 +28,8 @@
               pkgs.go
               pkgs.etcd
               pkgs.gopls
+
+              pkgs.containerd
             ];
           };
         }

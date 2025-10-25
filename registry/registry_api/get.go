@@ -9,10 +9,11 @@ import (
 	"net/http"
 	"slices"
 
-	"ssle/registry/schema"
-	"ssle/registry/utils"
-
 	"go.etcd.io/etcd/server/v3/storage/mvcc"
+
+	"ssle/schemas"
+
+	"ssle/registry/utils"
 )
 
 const (
@@ -23,7 +24,7 @@ func (state RegistryAPIState) getServiceInternal(
 	ctx context.Context,
 	prefix string,
 	limit int,
-) (map[string]schema.ServiceSpec, error) {
+) (map[string]schemas.ServiceSpec, error) {
 	kv := state.etcdServer.KV()
 
 	bytes := []byte(prefix)
@@ -34,9 +35,9 @@ func (state RegistryAPIState) getServiceInternal(
 		return nil, err
 	}
 
-	svcs := make(map[string]schema.ServiceSpec, len(res.KVs))
+	svcs := make(map[string]schemas.ServiceSpec, len(res.KVs))
 	for _, kv := range res.KVs {
-		var tmp schema.ServiceSpec
+		var tmp schemas.ServiceSpec
 		err = json.Unmarshal(kv.Value, &tmp)
 		if err != nil {
 			return nil, err
@@ -61,7 +62,7 @@ func (state RegistryAPIState) getService(w http.ResponseWriter, r *http.Request)
 	locPrefix := fmt.Sprintf("%v%v/", svcPrefix, location)
 	dcPrefix := fmt.Sprintf("%v%v/", locPrefix, dc)
 
-	var extra map[string]schema.ServiceSpec
+	var extra map[string]schemas.ServiceSpec
 	svcs, err := state.getServiceInternal(ctx, dcPrefix, MaxGetServiceLimit)
 
 	if err == nil && len(svcs) < MaxGetServiceLimit {

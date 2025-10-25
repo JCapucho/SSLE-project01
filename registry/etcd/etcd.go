@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	// "net/url"
+	"net/url"
 
 	"ssle/registry/config"
 	"ssle/registry/state"
@@ -56,13 +56,13 @@ func CreateEtcdConfig(members []membership.Member, state *state.State, config *c
 		TrustedCAFile:  state.CACrtFile,
 	}
 
-	etcdCfg.ListenPeerUrls = config.EtcdAdvertiseURLs()
-	etcdCfg.AdvertisePeerUrls = etcdCfg.ListenPeerUrls
+	etcdCfg.ListenPeerUrls = config.EtcdListenURLs()
+	etcdCfg.AdvertisePeerUrls = config.EtcdAdvertiseURLs()
 
 	// Disable client endpoints
-	// etcdCfg.ListenClientUrls = []url.URL{}
-	// etcdCfg.ListenClientHttpUrls = []url.URL{}
-	// etcdCfg.AdvertiseClientUrls = []url.URL{}
+	etcdCfg.ListenClientUrls = []url.URL{}
+	etcdCfg.ListenClientHttpUrls = []url.URL{}
+	etcdCfg.AdvertiseClientUrls = []url.URL{}
 
 	etcdCfg.InitialCluster = etcdCfg.InitialClusterFromName(config.Name)
 	for _, member := range members {

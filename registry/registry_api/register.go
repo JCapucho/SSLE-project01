@@ -7,33 +7,13 @@ import (
 	"net"
 	"net/http"
 
-	"ssle/registry/schema"
-	"ssle/registry/utils"
-
 	"go.etcd.io/etcd/pkg/v3/traceutil"
 	"go.etcd.io/etcd/server/v3/lease"
+
+	"ssle/schemas"
+
+	"ssle/registry/utils"
 )
-
-type RegisterServiceRequest struct {
-	Instance schema.PathSegment `json:"instance" validate:"required"`
-
-	Addresses   []schema.Hostname `json:"addrs"`
-	Ports       []schema.PortSpec `json:"ports"`
-	MetricsPort uint16            `json:"metricsPort"`
-}
-
-func (spec *RegisterServiceRequest) UnmarshalJSON(data []byte) error {
-	type RawRequest RegisterServiceRequest
-	raw := RawRequest{
-		Addresses: []schema.Hostname{},
-		Ports:     []schema.PortSpec{},
-	}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	*spec = RegisterServiceRequest(raw)
-	return nil
-}
 
 func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Request) {
 	dc, location, err := state.extractNameLocation(r)
@@ -42,18 +22,18 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	regSvcReq, err := utils.DeserializeRequestBody[RegisterServiceRequest](w, r)
+	regSvcReq, err := utils.DeserializeRequestBody[schemas.RegisterServiceRequest](w, r)
 	if err != nil {
 		return
 	}
 
 	svc := r.PathValue("service")
-	spec := schema.ServiceSpec{
-		ServiceName: schema.PathSegment(svc),
+	spec := schemas.ServiceSpec{
+		ServiceName: schemas.PathSegment(svc),
 		Instance:    regSvcReq.Instance,
 
-		Location:   schema.PathSegment(location),
-		DataCenter: schema.PathSegment(dc),
+		Location:   schemas.PathSegment(location),
+		DataCenter: schemas.PathSegment(dc),
 
 		Addresses:   regSvcReq.Addresses,
 		Ports:       regSvcReq.Ports,
@@ -68,14 +48,14 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		hostname, err := schema.ParseHostname(ip)
+		hostname, err := schemas.ParseHostname(ip)
 		if err != nil {
 			log.Print(err.Error())
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
 
-		spec.Addresses = []schema.Hostname{hostname}
+		spec.Addresses = []schemas.Hostname{hostname}
 	}
 
 	svcKey := fmt.Sprintf(
@@ -95,7 +75,7 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 	}
 
 	var serializedPrometheusService []byte
-	prometheusService := schema.PrometheusServiceFromServiceSpec(&spec)
+	prometheusService := schemas.PrometheusServiceFromServiceSpec(&spec)
 	if prometheusService != nil {
 		serializedPrometheusService, err = json.Marshal(prometheusService)
 		if err != nil {

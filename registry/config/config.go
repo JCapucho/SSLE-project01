@@ -8,9 +8,10 @@ import (
 	"net/url"
 	"reflect"
 	"slices"
-	"ssle/registry/schema"
 
 	"github.com/caarlos0/env/v11"
+
+	"ssle/schemas"
 )
 
 type Config struct {
@@ -20,20 +21,34 @@ type Config struct {
 	InitialToken string   `env:"TOKEN"`
 	JoinUrl      *url.URL `env:"JOIN_URL"`
 
-	PeerAdvertiseHostname schema.Hostname `env:"PEER_ADVERTISE_HOSTNAME"`
-	EtcdListenPort        uint16          `env:"ETCD_LISTEN_PORT" envDefault:"2380"`
-	PeerAPIListenPort     uint16          `env:"PEER_API_LISTEN_PORT"`
+	PeerListenAddr        netip.Addr       `env:"PEER_LISTEN_ADDR" envDefault:"0.0.0.0"`
+	PeerAdvertiseHostname schemas.Hostname `env:"PEER_ADVERTISE_HOSTNAME"`
+	EtcdListenPort        uint16           `env:"ETCD_LISTEN_PORT" envDefault:"2380"`
+	PeerAPIListenPort     uint16           `env:"PEER_API_LISTEN_PORT"`
 
-	RegistryAdvertiseHostname schema.Hostname `env:"REGISTRY_ADVERTISE_HOSTNAME"`
-	RegistryAPIListenPort     uint16          `env:"REGISTRY_API_LISTEN_PORT"`
+	RegistryListenAddr        netip.Addr       `env:"REGISTRY_LISTEN_ADDR" envDefault:"0.0.0.0"`
+	RegistryAdvertiseHostname schemas.Hostname `env:"REGISTRY_ADVERTISE_HOSTNAME"`
+	RegistryAPIListenPort     uint16           `env:"REGISTRY_API_LISTEN_PORT"`
+}
+
+func (config *Config) PeerAPIListenHost() string {
+	return schemas.HostnameFromAddr(config.PeerListenAddr).HostWithPort(config.PeerAPIListenPort)
 }
 
 func (config *Config) PeerAPIAdvertiseHost() string {
 	return config.PeerAdvertiseHostname.HostWithPort(config.PeerAPIListenPort)
 }
 
+func (config *Config) EtcdListenHost() string {
+	return schemas.HostnameFromAddr(config.PeerListenAddr).HostWithPort(config.EtcdListenPort)
+}
+
 func (config *Config) EtcdAdvertiseHost() string {
 	return config.PeerAdvertiseHostname.HostWithPort(config.EtcdListenPort)
+}
+
+func (config *Config) RegistryAPIListenHost() string {
+	return schemas.HostnameFromAddr(config.RegistryListenAddr).HostWithPort(config.RegistryAPIListenPort)
 }
 
 func (config *Config) RegistryAPIAdvertiseHost() string {
@@ -41,7 +56,15 @@ func (config *Config) RegistryAPIAdvertiseHost() string {
 }
 
 func (config *Config) EtcdAdvertiseURLs() []url.URL {
-	listenUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdAdvertiseHost()))
+	advertiseUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdAdvertiseHost()))
+	if err != nil {
+		log.Fatalf("Invalid peer advertise URL: %v", err)
+	}
+	return []url.URL{*advertiseUrl}
+}
+
+func (config *Config) EtcdListenURLs() []url.URL {
+	listenUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdListenHost()))
 	if err != nil {
 		log.Fatalf("Invalid peer listen URL: %v", err)
 	}
@@ -131,8 +154,8 @@ func LoadConfig() Config {
 	err := env.ParseWithOptions(&config, env.Options{
 		Prefix: "REGISTRY_",
 		FuncMap: map[reflect.Type]env.ParserFunc{
-			reflect.TypeOf(schema.Hostname{}): func(v string) (any, error) {
-				return schema.ParseHostname(v)
+			reflect.TypeOf(schemas.Hostname{}): func(v string) (any, error) {
+				return schemas.ParseHostname(v)
 			},
 		},
 	})
@@ -150,7 +173,7 @@ func LoadConfig() Config {
 			host = config.JoinUrl.Hostname()
 		}
 
-		config.PeerAdvertiseHostname = schema.HostnameFromAddr(findBestAddr(host))
+		config.PeerAdvertiseHostname = schemas.HostnameFromAddr(findBestAddr(host))
 		log.Printf("Peer advertise host: %v", config.PeerAdvertiseHostname)
 	}
 

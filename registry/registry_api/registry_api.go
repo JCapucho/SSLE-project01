@@ -93,7 +93,7 @@ func StartRegistryAPIHTTPServer(config *config.Config, state *state.State, etcdS
 	handler.HandleFunc("GET /discovery", apiState.prometheusDiscovery)
 
 	server := &http.Server{
-		Addr:    config.RegistryAPIAdvertiseHost(),
+		Addr:    config.RegistryAPIListenHost(),
 		Handler: handler,
 	}
 
