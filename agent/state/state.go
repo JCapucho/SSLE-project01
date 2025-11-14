@@ -57,7 +57,7 @@ func (state *State) NewRegistryRequest(
 	reqUrl := *config.JoinUrl
 	reqUrl.Path = path
 
-	req, err := http.NewRequest("GET", reqUrl.String(), body)
+	req, err := http.NewRequest(method, reqUrl.String(), body)
 	if err != nil {
 		return nil, err
 	}

@@ -22,13 +22,12 @@ const (
 
 func (state RegistryAPIState) getServiceInternal(
 	ctx context.Context,
-	prefix string,
+	prefix []byte,
 	limit int,
 ) (map[string]schemas.ServiceSpec, error) {
 	kv := state.etcdServer.KV()
 
-	bytes := []byte(prefix)
-	res, err := kv.Range(ctx, bytes, utils.PrefixEnd(bytes), mvcc.RangeOptions{
+	res, err := kv.Range(ctx, prefix, utils.PrefixEnd(prefix), mvcc.RangeOptions{
 		Limit: int64(limit),
 	})
 	if err != nil {
@@ -48,8 +47,28 @@ func (state RegistryAPIState) getServiceInternal(
 	return svcs, nil
 }
 
+func (state RegistryAPIState) fillServices(
+	ctx context.Context,
+	prefix []byte,
+	svcs map[string]schemas.ServiceSpec,
+) (map[string]schemas.ServiceSpec, error) {
+	extra, err := state.getServiceInternal(ctx, prefix, MaxGetServiceLimit)
+	if err != nil {
+		return svcs, nil
+	}
+
+	for k, v := range extra {
+		if len(svcs) >= MaxGetServiceLimit {
+			break
+		}
+		svcs[k] = v
+	}
+
+	return svcs, nil
+}
+
 func (state RegistryAPIState) getService(w http.ResponseWriter, r *http.Request) {
-	dc, location, err := state.extractNameLocation(r)
+	name, dc, location, err := state.extractNameLocation(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -58,37 +77,26 @@ func (state RegistryAPIState) getService(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	svc := r.PathValue("service")
 
-	svcPrefix := fmt.Sprintf("%v/%v/", utils.ServiceNamespace, svc)
-	locPrefix := fmt.Sprintf("%v%v/", svcPrefix, location)
-	dcPrefix := fmt.Sprintf("%v%v/", locPrefix, dc)
+	svcPrefix := fmt.Appendf(nil, "%v/%v/", utils.ServiceNamespace, svc)
+	locPrefix := fmt.Appendf(svcPrefix, "%v/", location)
+	dcPrefix := fmt.Appendf(locPrefix, "%v/", dc)
+	namePrefix := fmt.Appendf(dcPrefix, "%v/", name)
 
-	var extra map[string]schemas.ServiceSpec
-	svcs, err := state.getServiceInternal(ctx, dcPrefix, MaxGetServiceLimit)
+	svcs, err := state.getServiceInternal(ctx, namePrefix, MaxGetServiceLimit)
+
+	if err == nil && len(svcs) < MaxGetServiceLimit {
+		log.Print("Querying datacenter services")
+		svcs, err = state.fillServices(ctx, dcPrefix, svcs)
+	}
 
 	if err == nil && len(svcs) < MaxGetServiceLimit {
 		log.Print("Querying location services")
-		extra, err = state.getServiceInternal(ctx, locPrefix, MaxGetServiceLimit)
-		if err == nil {
-			for k, v := range extra {
-				if len(svcs) >= MaxGetServiceLimit {
-					break
-				}
-				svcs[k] = v
-			}
-		}
+		svcs, err = state.fillServices(ctx, locPrefix, svcs)
 	}
 
 	if err == nil && len(svcs) < MaxGetServiceLimit {
 		log.Print("Querying global services")
-		extra, err = state.getServiceInternal(ctx, svcPrefix, MaxGetServiceLimit)
-		if err == nil {
-			for k, v := range extra {
-				if len(svcs) >= MaxGetServiceLimit {
-					break
-				}
-				svcs[k] = v
-			}
-		}
+		svcs, err = state.fillServices(ctx, svcPrefix, svcs)
 	}
 
 	if err != nil {

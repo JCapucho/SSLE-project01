@@ -37,32 +37,37 @@ func (state RegistryAPIState) verifyToken(r *http.Request, implicit []byte) (*pa
 	return token, nil
 }
 
-func (state RegistryAPIState) extractNameLocation(r *http.Request) (string, string, error) {
+func (state RegistryAPIState) extractNameLocation(r *http.Request) (string, string, string, error) {
 	token, err := state.verifyToken(r, []byte("DC"))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
 	name, err := utils.ExtractTokenKey[string](token, "name")
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	location, err := utils.ExtractTokenKey[string](token, "location")
+	dc, err := utils.ExtractTokenKey[string](token, "dc")
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
+	}
+	location, err := utils.ExtractTokenKey[string](token, "loc")
+	if err != nil {
+		return "", "", "", err
 	}
 
-	return name, location, nil
+	return name, dc, location, nil
 }
 
 type ConfigResponse struct {
-	CACrt    string `json:"caCrt"`
-	Name     string `json:"name"`
-	Location string `json:"location"`
+	CACrt      string `json:"caCrt"`
+	Name       string `json:"name"`
+	Datacenter string `json:"dc"`
+	Location   string `json:"location"`
 }
 
 func (state RegistryAPIState) config(w http.ResponseWriter, r *http.Request) {
-	name, location, err := state.extractNameLocation(r)
+	name, dc, location, err := state.extractNameLocation(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -74,9 +79,10 @@ func (state RegistryAPIState) config(w http.ResponseWriter, r *http.Request) {
 	})
 
 	utils.HttpRespondJson(w, http.StatusOK, ConfigResponse{
-		CACrt:    string(CACrt),
-		Name:     name,
-		Location: location,
+		CACrt:      string(CACrt),
+		Name:       name,
+		Datacenter: dc,
+		Location:   location,
 	})
 }
 
@@ -90,6 +96,7 @@ func StartRegistryAPIHTTPServer(config *config.Config, state *state.State, etcdS
 	handler.HandleFunc("GET /config", apiState.config)
 	handler.HandleFunc("POST /svc/{service}", apiState.registerService)
 	handler.HandleFunc("GET /svc/{service}", apiState.getService)
+	handler.HandleFunc("DELETE /svc", apiState.deleteNodeServices)
 	handler.HandleFunc("GET /discovery", apiState.prometheusDiscovery)
 
 	server := &http.Server{

@@ -16,7 +16,7 @@ import (
 )
 
 func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Request) {
-	dc, location, err := state.extractNameLocation(r)
+	name, dc, location, err := state.extractNameLocation(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
@@ -34,6 +34,7 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 
 		Location:   schemas.PathSegment(location),
 		DataCenter: schemas.PathSegment(dc),
+		Node:       schemas.PathSegment(name),
 
 		Addresses:   regSvcReq.Addresses,
 		Ports:       regSvcReq.Ports,
@@ -58,12 +59,23 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 		spec.Addresses = []schemas.Hostname{hostname}
 	}
 
-	svcKey := fmt.Sprintf(
-		"%v/%v/%v/%v/%v",
+	svcKey := fmt.Appendf(
+		nil,
+		"%v/%v/%v/%v/%v/%v",
 		utils.ServiceNamespace,
 		spec.ServiceName,
 		location,
 		dc,
+		name,
+		spec.Instance,
+	)
+	dsSvcKey := fmt.Appendf(
+		nil,
+		"%v/%v/%v/%v/%v",
+		utils.DCServicesNamespace,
+		dc,
+		name,
+		spec.ServiceName,
 		spec.Instance,
 	)
 
@@ -88,16 +100,19 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 	kv := state.etcdServer.KV()
 
 	tx := kv.Write(traceutil.New("Register service", state.etcdServer.Logger()))
-	tx.Put([]byte(svcKey), serializedSpec, lease.NoLease)
+	tx.Put(svcKey, serializedSpec, lease.NoLease)
+	tx.Put(dsSvcKey, []byte{}, lease.NoLease)
 	if serializedPrometheusService != nil {
-		dsSvcKey := fmt.Sprintf(
-			"%v/%v/%v/%v",
-			utils.DCServicesNamespace,
+		promSvcKey := fmt.Appendf(
+			nil,
+			"%v/%v/%v/%v/%v",
+			utils.PrometheusServicesNamespace,
 			dc,
+			name,
 			spec.ServiceName,
 			spec.Instance,
 		)
-		tx.Put([]byte(dsSvcKey), serializedPrometheusService, lease.NoLease)
+		tx.Put(promSvcKey, serializedPrometheusService, lease.NoLease)
 	}
 	tx.End()
 

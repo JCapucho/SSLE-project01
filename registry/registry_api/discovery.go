@@ -11,13 +11,13 @@ import (
 )
 
 func (state RegistryAPIState) prometheusDiscovery(w http.ResponseWriter, r *http.Request) {
-	dc, _, err := state.extractNameLocation(r)
+	_, dc, _, err := state.extractNameLocation(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
-	prefix := fmt.Sprintf("%v/%v", utils.DCServicesNamespace, dc)
+	prefix := fmt.Sprintf("%v/%v", utils.PrometheusServicesNamespace, dc)
 	bytes := []byte(prefix)
 
 	kv := state.etcdServer.KV()

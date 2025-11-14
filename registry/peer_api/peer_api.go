@@ -15,8 +15,6 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 
-	"ssle/schemas"
-
 	"ssle/registry/config"
 	"ssle/registry/state"
 	"ssle/registry/utils"
@@ -60,32 +58,6 @@ func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 }
 
-type AddDataCenterRequest struct {
-	Name     schemas.PathSegment `json:"name" validate:"required"`
-	Location schemas.PathSegment `json:"location" validate:"required"`
-}
-
-type AddDataCenterResponse struct {
-	Token string `json:"token"`
-}
-
-func (state PeerAPIState) addDataCenterHandler(w http.ResponseWriter, r *http.Request) {
-	addDCReq, err := utils.DeserializeRequestBody[AddDataCenterRequest](w, r)
-	if err != nil {
-		return
-	}
-
-	token := utils.NewToken(365 * 24 * time.Hour)
-	token.SetString("name", addDCReq.Name.String())
-	token.SetString("location", addDCReq.Location.String())
-
-	encryptedToken := token.V4Encrypt(state.state.TokenKey, []byte("DC"))
-
-	utils.HttpRespondJson(w, http.StatusCreated, AddDataCenterResponse{
-		Token: encryptedToken,
-	})
-}
-
 func StartPeerAPIHTTPServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
 	apiState := PeerAPIState{
 		state:      state,
@@ -96,8 +68,8 @@ func StartPeerAPIHTTPServer(config *config.Config, state *state.State, etcdServe
 	// Peer endpoints
 	handler.HandleFunc("GET /peers", apiState.listPeerHandler)
 	handler.HandleFunc("POST /peers/add", apiState.addPeerHandler)
-	// DC endpoints
-	handler.HandleFunc("POST /dc/add", apiState.addDataCenterHandler)
+	// Node endpoints
+	handler.HandleFunc("POST /node", apiState.addNodeHandler)
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AddCert(state.CA.Leaf)

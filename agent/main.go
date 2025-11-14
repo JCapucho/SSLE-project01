@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"codeberg.org/miekg/dns"
@@ -53,31 +54,47 @@ func HandleEvent(
 		return
 	}
 
-	res, err := state.DockerClient.ContainerInspect(context.Background(), evt.Actor.ID)
-	if err != nil {
-		log.Printf("Error while retrieving container: %v", err)
-		return
-	}
-
 	registerService(
 		config,
 		state,
-		res.Config.Labels["ssle.service"],
-		res.Name,
+		evt.Actor.ID,
 	)
 }
 
 func registerService(
 	config *config.Config,
 	state *state.State,
-	svc string,
-	container string,
+	containerId string,
 ) {
-	container = strings.ReplaceAll(container, "/", "_")
+	ctr, err := state.DockerClient.ContainerInspect(context.Background(), containerId)
+	if err != nil {
+		log.Printf("Error while retrieving container: %v\n", err)
+		return
+	}
+
+	svc, found := ctr.Config.Labels["ssle.service"]
+	if !found {
+		log.Println("Container does not have service label")
+		return
+	}
+
+	ports := []schemas.PortSpec{}
+	for port, bind := range ctr.NetworkSettings.Ports {
+		parts := strings.SplitN(string(port), "/", 2)
+		svcPort, _ := strconv.ParseUint(bind[0].HostPort, 10, 16)
+
+		ports = append(ports, schemas.PortSpec{
+			Name:     schemas.PathSegment(parts[0]),
+			Port:     uint16(svcPort),
+			Protocol: parts[1],
+		})
+	}
+
+	container := strings.ReplaceAll(ctr.Name, "/", "_")
 	spec := schemas.RegisterServiceRequest{
 		Instance:  schemas.PathSegment(container),
 		Addresses: []schemas.Hostname{},
-		Ports:     []schemas.PortSpec{},
+		Ports:     ports,
 	}
 
 	res, err := state.RegistryPost(config, "/svc/"+url.PathEscape(svc), spec)
@@ -89,6 +106,15 @@ func registerService(
 func main() {
 	config := config.LoadConfig()
 	state := state.LoadState(&config)
+
+	req, err := state.NewRegistryRequest(&config, "DELETE", "/svc", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	res, err := state.RegistryClient.Do(req)
+	if httpResponseError("Error resetting node", res, err) {
+		return
+	}
 
 	args := filters.NewArgs(filters.Arg("label", "manager=ssle"))
 
@@ -112,8 +138,7 @@ func main() {
 		registerService(
 			&config,
 			&state,
-			ctr.Labels["ssle.service"],
-			ctr.Names[0],
+			ctr.ID,
 		)
 	}
 

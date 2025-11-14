@@ -139,6 +139,7 @@ type ServiceSpec struct {
 
 	Location   PathSegment `json:"location" validate:"required"`
 	DataCenter PathSegment `json:"datacenter" validate:"required"`
+	Node       PathSegment `json:"node" validate:"required"`
 
 	Addresses   []Hostname `json:"addrs"`
 	Ports       []PortSpec `json:"ports"`

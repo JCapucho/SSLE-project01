@@ -19,8 +19,10 @@ const (
 
 	DCImplicit = "DC"
 
-	ServiceNamespace    = "svc"
-	DCServicesNamespace = "dcsvc"
+	ServiceNamespace            = "svc"
+	DCServicesNamespace         = "dcsvc"
+	PrometheusServicesNamespace = "prom"
+	NodesNamespace              = "nodes"
 )
 
 func NewToken(exp time.Duration) paseto.Token {
