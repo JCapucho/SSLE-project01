@@ -99,3 +99,17 @@ func (state *State) RegistryPost(config *config.Config, path string, v any) (*ht
 
 	return res, nil
 }
+
+func (state *State) RegistryDelete(config *config.Config, path string) (*http.Response, error) {
+	req, err := state.NewRegistryRequest(config, "DELETE", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := state.RegistryClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}

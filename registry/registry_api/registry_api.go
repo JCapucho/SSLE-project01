@@ -97,6 +97,7 @@ func StartRegistryAPIHTTPServer(config *config.Config, state *state.State, etcdS
 	handler.HandleFunc("POST /svc/{service}", apiState.registerService)
 	handler.HandleFunc("GET /svc/{service}", apiState.getService)
 	handler.HandleFunc("DELETE /svc", apiState.deleteNodeServices)
+	handler.HandleFunc("DELETE /svc/{service}/{instance}", apiState.deleteServiceInstance)
 	handler.HandleFunc("GET /discovery", apiState.prometheusDiscovery)
 
 	server := &http.Server{

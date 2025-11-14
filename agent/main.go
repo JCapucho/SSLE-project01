@@ -50,15 +50,33 @@ func HandleEvent(
 		return
 	}
 
-	if evt.Action != events.ActionCreate {
-		return
-	}
+	switch evt.Action {
+	case events.ActionCreate, events.ActionStart:
+		registerService(
+			config,
+			state,
+			evt.Actor.ID,
+		)
+	case events.ActionRemove, events.ActionStop, events.ActionDie:
+		name, found := evt.Actor.Attributes["name"]
+		if !found {
+			log.Println("Error: No name found while deregistering")
+			return
+		}
 
-	registerService(
-		config,
-		state,
-		evt.Actor.ID,
-	)
+		service, found := evt.Actor.Attributes["ssle.service"]
+		if !found {
+			log.Println("Error: No service label found while deregistering")
+			return
+		}
+
+		deleteService(
+			config,
+			state,
+			service,
+			name,
+		)
+	}
 }
 
 func registerService(
@@ -90,7 +108,8 @@ func registerService(
 		})
 	}
 
-	container := strings.ReplaceAll(ctr.Name, "/", "_")
+	container, _ := strings.CutPrefix(ctr.Name, "/")
+	container = strings.ReplaceAll(container, "/", "_")
 	spec := schemas.RegisterServiceRequest{
 		Instance:  schemas.PathSegment(container),
 		Addresses: []schemas.Hostname{},
@@ -103,15 +122,25 @@ func registerService(
 	}
 }
 
+func deleteService(
+	config *config.Config,
+	state *state.State,
+	svc string,
+	instance string,
+) {
+	container := strings.ReplaceAll(instance, "/", "_")
+	path := fmt.Sprintf("/svc/%v/%v", url.PathEscape(svc), url.PathEscape(container))
+	res, err := state.RegistryDelete(config, path)
+	if httpResponseError("Error deregistering service", res, err) {
+		return
+	}
+}
+
 func main() {
 	config := config.LoadConfig()
 	state := state.LoadState(&config)
 
-	req, err := state.NewRegistryRequest(&config, "DELETE", "/svc", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	res, err := state.RegistryClient.Do(req)
+	res, err := state.RegistryDelete(&config, "/svc")
 	if httpResponseError("Error resetting node", res, err) {
 		return
 	}
@@ -121,11 +150,13 @@ func main() {
 	evtChan, errChan := state.DockerClient.Events(context.Background(), events.ListOptions{Filters: args})
 
 	go func() {
-		select {
-		case evt := <-evtChan:
-			HandleEvent(&config, &state, evt)
-		case err := <-errChan:
-			panic(err)
+		for {
+			select {
+			case evt := <-evtChan:
+				HandleEvent(&config, &state, evt)
+			case err := <-errChan:
+				panic(err)
+			}
 		}
 	}()
 

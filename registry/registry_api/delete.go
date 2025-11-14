@@ -61,3 +61,55 @@ func (state RegistryAPIState) deleteNodeServices(w http.ResponseWriter, r *http.
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (state RegistryAPIState) deleteServiceInstance(w http.ResponseWriter, r *http.Request) {
+	name, dc, location, err := state.extractNameLocation(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	svc := r.PathValue("service")
+	instance := r.PathValue("instance")
+
+	svcKey := fmt.Appendf(
+		nil,
+		"%v/%v/%v/%v/%v/%v",
+		utils.ServiceNamespace,
+		svc,
+		location,
+		dc,
+		name,
+		instance,
+	)
+	dsSvcKey := fmt.Appendf(
+		nil,
+		"%v/%v/%v/%v/%v",
+		utils.DCServicesNamespace,
+		dc,
+		name,
+		svc,
+		instance,
+	)
+	promSvcKey := fmt.Appendf(
+		nil,
+		"%v/%v/%v/%v/%v",
+		utils.PrometheusServicesNamespace,
+		dc,
+		name,
+		svc,
+		instance,
+	)
+
+	kv := state.etcdServer.KV()
+	tx := kv.Write(traceutil.New("Remove service instance", state.etcdServer.Logger()))
+
+	tx.DeleteRange(svcKey, nil)
+	tx.DeleteRange(dsSvcKey, nil)
+	tx.DeleteRange(promSvcKey, nil)
+
+	tx.End()
+	kv.Commit()
+
+	w.WriteHeader(http.StatusNoContent)
+}
