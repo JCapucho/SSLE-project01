@@ -1,0 +1,21 @@
+<!-- /var/ossec/etc/rules/local_rules.xml -->
+<group name="ids,suricata,">
+  <rule id="100010" level="12">
+      <if_sid>86601</if_sid>
+      <match>DOS SYN packet flood</match>
+      <description>TCP SYN flood attack</description>
+  </rule>
+
+  <rule id="100011" level="12">
+    <field name="urlhaus.url_threat">malware_download</field>
+    <description>URLhaus: An endpoint connected to a url known for deploying malware.</description>
+  </rule>
+</group>
+
+<group name="ossec,">
+  <rule id="100021" level="12">
+      <if_sid>510</if_sid>
+      <match>Rootkit 'C2' detected</match>
+      <description>APT Persistence</description>
+  </rule>
+</group>

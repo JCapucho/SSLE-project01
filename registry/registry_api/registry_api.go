@@ -95,7 +95,13 @@ func StartRegistryAPIHTTPServer(config *config.Config, state *state.State, etcdS
 	handler := http.NewServeMux()
 	handler.HandleFunc("GET /config", apiState.config)
 	handler.HandleFunc("POST /svc/{service}", apiState.registerService)
+
 	handler.HandleFunc("GET /svc/{service}", apiState.getService)
+	handler.HandleFunc("GET /svc/{service}/{location}", apiState.getService)
+	handler.HandleFunc("GET /svc/{service}/{location}/{datacenter}", apiState.getService)
+	handler.HandleFunc("GET /svc/{service}/{location}/{datacenter}/{node}", apiState.getService)
+	handler.HandleFunc("GET /svc/{service}/{location}/{datacenter}/{node}/{instance}", apiState.getService)
+
 	handler.HandleFunc("DELETE /svc", apiState.deleteNodeServices)
 	handler.HandleFunc("DELETE /svc/{service}/{instance}", apiState.deleteServiceInstance)
 	handler.HandleFunc("GET /discovery", apiState.prometheusDiscovery)

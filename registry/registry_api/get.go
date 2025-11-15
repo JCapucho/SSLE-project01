@@ -77,24 +77,48 @@ func (state RegistryAPIState) getService(w http.ResponseWriter, r *http.Request)
 	ctx := r.Context()
 	svc := r.PathValue("service")
 
+	locParam := r.PathValue("location")
+	dcParam := r.PathValue("datacenter")
+	nodeParam := r.PathValue("node")
+	instanceParam := r.PathValue("instance")
+
+	if locParam != "" {
+		location = locParam
+	}
+	if dcParam != "" {
+		dc = dcParam
+	}
+	if nodeParam != "" {
+		name = nodeParam
+	}
+
 	svcPrefix := fmt.Appendf(nil, "%v/%v/", utils.ServiceNamespace, svc)
 	locPrefix := fmt.Appendf(svcPrefix, "%v/", location)
 	dcPrefix := fmt.Appendf(locPrefix, "%v/", dc)
 	namePrefix := fmt.Appendf(dcPrefix, "%v/", name)
 
-	svcs, err := state.getServiceInternal(ctx, namePrefix, MaxGetServiceLimit)
+	var svcs map[string]schemas.ServiceSpec
 
-	if err == nil && len(svcs) < MaxGetServiceLimit {
+	if instanceParam != "" {
+		key := fmt.Appendf(namePrefix, "%v", instanceParam)
+		svcs, err = state.getServiceInternal(ctx, key, 1)
+	}
+
+	if instanceParam == "" {
+		svcs, err = state.getServiceInternal(ctx, namePrefix, MaxGetServiceLimit)
+	}
+
+	if err == nil && len(svcs) < MaxGetServiceLimit && nodeParam == "" {
 		log.Print("Querying datacenter services")
 		svcs, err = state.fillServices(ctx, dcPrefix, svcs)
 	}
 
-	if err == nil && len(svcs) < MaxGetServiceLimit {
+	if err == nil && len(svcs) < MaxGetServiceLimit && dcParam == "" {
 		log.Print("Querying location services")
 		svcs, err = state.fillServices(ctx, locPrefix, svcs)
 	}
 
-	if err == nil && len(svcs) < MaxGetServiceLimit {
+	if err == nil && len(svcs) < MaxGetServiceLimit && locParam == "" {
 		log.Print("Querying global services")
 		svcs, err = state.fillServices(ctx, svcPrefix, svcs)
 	}

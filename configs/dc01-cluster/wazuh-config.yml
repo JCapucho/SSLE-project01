@@ -1,0 +1,10 @@
+nodes:
+  # Wazuh indexer nodes
+  indexer:
+    - name: dc01-node-1
+      ip: "10.255.255.197"
+
+  # Wazuh server nodes
+  server:
+    - name: wazuh-1
+      ip: "10.255.255.197"

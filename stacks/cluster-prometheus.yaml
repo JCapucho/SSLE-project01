@@ -15,6 +15,16 @@ services:
       - source: prometheus-config
         target: /etc/prometheus/prometheus.yml
 
+  thanos:
+    image: "quay.io/thanos/thanos:v0.40.1"
+    command: "sidecar --tsdb.path=/prometheus --prometheus.url=http://prometheus:9090 --grpc-address=0.0.0.0:10901"
+    dns: 172.17.0.1
+    restart: always
+    ports:
+      - "10901:10901"
+    volumes:
+      - prometheus-data:/prometheus
+
 volumes:
   prometheus-data:
 
@@ -27,6 +37,11 @@ secrets:
 configs:
   prometheus-config:
     content: |
+      global:
+        scrape_interval: 15s
+        external_labels:
+          prometheus_from: dc01
+        
       scrape_configs:
       - job_name: registry
         http_sd_configs:

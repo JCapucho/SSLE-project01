@@ -15,6 +15,21 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  exporter:
+    image: "quay.io/prometheus/node-exporter:latest"
+    command: "--path.rootfs=/host"
+    pid: "host"
+    restart: always
+    network_mode: host
+    labels:
+      manager: ssle
+      ssle.service: node
+      ssle.metrics: 9100
+    ports:
+      - 9100:9100
+    volumes:
+      - /:/host:ro,rslave
+    
 secrets:
   token:
     file: ./token

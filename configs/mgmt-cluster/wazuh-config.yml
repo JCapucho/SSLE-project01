@@ -1,0 +1,10 @@
+nodes:
+  # Wazuh indexer nodes
+  indexer:
+    - name: ccs-node-1
+      ip: "10.255.255.15"
+
+  # Wazuh dashboard nodes
+  dashboard:
+    - name: dashboard
+      ip: "10.255.255.15"

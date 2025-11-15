@@ -1,0 +1,14 @@
+# /usr/share/wazuh-dashboard/data/wazuh/config/wazuh.yml
+hosts:
+  - dc01:
+      url: https://10.255.255.197
+      port: 55000
+      username: wazuh-wui
+      password: wazuh-wui
+      run_as: true
+  - dc02:
+      url: https://10.255.255.195
+      port: 55000
+      username: wazuh-wui
+      password: wazuh-wui
+      run_as: true

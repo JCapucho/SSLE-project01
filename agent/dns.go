@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -34,7 +35,7 @@ func (h *ClusterDnsHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, 
 
 	for _, question := range r.Question {
 		header := question.Header()
-		path, found := strings.CutSuffix(header.Name, "cluster.internal.")
+		path, found := strings.CutSuffix(header.Name, ".cluster.internal.")
 
 		if !found {
 			r.MsgHeader.Rcode = dns.RcodeNameError
@@ -45,12 +46,17 @@ func (h *ClusterDnsHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, 
 		}
 
 		parts := strings.Split(path, ".")
-		if len(parts) < 1 || len(parts) > 3 {
+		if len(parts) < 1 || len(parts) > 5 {
 			r.MsgHeader.Rcode = dns.RcodeNameError
 			break
 		}
 
-		res, err := h.state.RegistryGet(h.config, "/svc/"+url.PathEscape(parts[0]))
+		queryPath := "/svc"
+		for _, v := range slices.Backward(parts) {
+			queryPath = fmt.Sprintf("%v/%v", queryPath, url.PathEscape(v))
+		}
+
+		res, err := h.state.RegistryGet(h.config, queryPath)
 		if httpResponseError("Error obtaining service", res, err) {
 			r.MsgHeader.Rcode = dns.RcodeNameError
 			break
