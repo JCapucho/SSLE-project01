@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 
@@ -96,6 +98,17 @@ func registerService(
 		return
 	}
 
+	metricsPort := uint16(0)
+	metrics, found := ctr.Config.Labels["ssle.metrics"]
+	if found {
+		parse, err := strconv.ParseUint(metrics, 10, 16)
+		if err != nil {
+			log.Printf("Error: Invalid metrics label for service: %s\n", err)
+			return
+		}
+		metricsPort = uint16(parse)
+	}
+
 	ports := []schemas.PortSpec{}
 	for port, bind := range ctr.NetworkSettings.Ports {
 		parts := strings.SplitN(string(port), "/", 2)
@@ -111,9 +124,10 @@ func registerService(
 	container, _ := strings.CutPrefix(ctr.Name, "/")
 	container = strings.ReplaceAll(container, "/", "_")
 	spec := schemas.RegisterServiceRequest{
-		Instance:  schemas.PathSegment(container),
-		Addresses: []schemas.Hostname{},
-		Ports:     ports,
+		Instance:    schemas.PathSegment(container),
+		Addresses:   []schemas.Hostname{},
+		Ports:       ports,
+		MetricsPort: metricsPort,
 	}
 
 	res, err := state.RegistryPost(config, "/svc/"+url.PathEscape(svc), spec)
@@ -136,6 +150,13 @@ func deleteService(
 	}
 }
 
+func cleanup(config *config.Config, state *state.State) {
+	log.Println("Cleaning up")
+	res, err := state.RegistryDelete(config, "/svc")
+	httpResponseError("Error cleaning up", res, err)
+	os.Exit(0)
+}
+
 func main() {
 	config := config.LoadConfig()
 	state := state.LoadState(&config)
@@ -144,6 +165,14 @@ func main() {
 	if httpResponseError("Error resetting node", res, err) {
 		return
 	}
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		<-c
+		cleanup(&config, &state)
+	}()
+	defer cleanup(&config, &state)
 
 	args := filters.NewArgs(filters.Arg("label", "manager=ssle"))
 
