@@ -7,9 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"go.etcd.io/etcd/pkg/v3/traceutil"
-	"go.etcd.io/etcd/server/v3/lease"
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 
 	"ssle/schemas"
 
@@ -33,34 +31,44 @@ func (state PeerAPIState) addNodeHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	nodeKey := fmt.Appendf(nil, "%v/%v/%v", utils.NodesNamespace, addNodeReq.Datacenter, addNodeReq.Name)
-	kv := state.etcdServer.KV()
-
-	tx := kv.Write(traceutil.New("Register service", state.etcdServer.Logger()))
-
-	res, err := tx.Range(r.Context(), nodeKey, nil, mvcc.RangeOptions{})
-	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	if len(res.KVs) != 0 {
-		http.Error(w, "", http.StatusConflict)
-		tx.End()
-		return
-	}
 
 	serializedNode, err := json.Marshal(addNodeReq)
 	if err != nil {
 		log.Print(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
-		tx.End()
 		return
 	}
 
-	tx.Put(nodeKey, serializedNode, lease.NoLease)
-	tx.End()
-	kv.Commit()
+	txn := &etcdserverpb.TxnRequest{
+		Compare: []*etcdserverpb.Compare{{
+			Result: etcdserverpb.Compare_EQUAL,
+			Target: etcdserverpb.Compare_CREATE,
+			Key:    nodeKey,
+			TargetUnion: &etcdserverpb.Compare_CreateRevision{
+				CreateRevision: int64(0),
+			},
+		}},
+		Success: []*etcdserverpb.RequestOp{{
+			Request: &etcdserverpb.RequestOp_RequestPut{
+				RequestPut: &etcdserverpb.PutRequest{
+					Key:   nodeKey,
+					Value: serializedNode,
+				},
+			},
+		}},
+	}
+
+	res, err := state.etcdServer.Txn(r.Context(), txn)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	if !res.Succeeded {
+		http.Error(w, "", http.StatusConflict)
+		return
+	}
 
 	token := utils.NewToken(365 * 24 * time.Hour)
 	token.SetString("name", addNodeReq.Name.String())

@@ -1,0 +1,18 @@
+services:
+  registry:
+    image: "ghcr.io/jcapucho/ssle/registry:latest"
+    restart: always
+    environment:
+      REGISTRY_NAME: "mgmt"
+      REGISTRY_DIR: "/home/nonroot"
+      REGISTRY_PEER_ADVERTISE_HOSTNAME: 10.255.255.15
+      REGISTRY_REGISTRY_ADVERTISE_HOSTNAME: 10.255.255.15
+    ports:
+      - "2380:2380"
+      - "2381:2381"
+      - "2382:2382"
+    volumes:
+      - registry-state:/home/nonroot
+
+volumes:
+  registry-state:

@@ -1,0 +1,16 @@
+name: wordpress-stack
+services:
+  wordpress:
+    image: wordpress:latest
+    dns: 172.17.0.1
+    labels:
+      manager: ssle
+      ssle.service: wordpress
+    ports:
+      - 80:80
+    restart: always
+    environment:
+      - WORDPRESS_DB_HOST=mariadb.cluster.internal
+      - WORDPRESS_DB_USER=wordpress
+      - WORDPRESS_DB_PASSWORD=wordpress
+      - WORDPRESS_DB_NAME=wordpress

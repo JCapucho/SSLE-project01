@@ -1,0 +1,38 @@
+name: prometheus
+services:
+  prometheus:
+    image: "prom/prometheus:latest"
+    dns: 172.17.0.1
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus-data:/prometheus
+    secrets:
+      - ca-crt
+      - node-token
+    configs:
+      - source: prometheus-config
+        target: /etc/prometheus/prometheus.yml
+
+volumes:
+  prometheus-data:
+
+secrets:
+  ca-crt:
+    file: ./ca.crt
+  node-token:
+    file: ./node-token
+
+configs:
+  prometheus-config:
+    content: |
+      scrape_configs:
+      - job_name: registry
+        http_sd_configs:
+        - url: 'https://10.255.255.15:2382/discovery'
+          refresh_interval: 5s
+          authorization:
+            credentials_file: "/run/secrets/node-token"
+          tls_config:
+            ca_file: "/run/secrets/ca-crt"

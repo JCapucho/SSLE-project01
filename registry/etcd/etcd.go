@@ -55,14 +55,14 @@ func CreateEtcdConfig(members []membership.Member, state *state.State, config *c
 		ClientCertAuth: true,
 		TrustedCAFile:  state.CACrtFile,
 	}
+	etcdCfg.ClientTLSInfo = etcdCfg.PeerTLSInfo
 
 	etcdCfg.ListenPeerUrls = config.EtcdListenURLs()
 	etcdCfg.AdvertisePeerUrls = config.EtcdAdvertiseURLs()
 
-	// Disable client endpoints
-	etcdCfg.ListenClientUrls = []url.URL{}
+	etcdCfg.ListenClientUrls = config.EtcdClientListenURLs()
 	etcdCfg.ListenClientHttpUrls = []url.URL{}
-	etcdCfg.AdvertiseClientUrls = []url.URL{}
+	etcdCfg.AdvertiseClientUrls = config.EtcdClientAdvertiseURLs()
 
 	etcdCfg.InitialCluster = etcdCfg.InitialClusterFromName(config.Name)
 	for _, member := range members {

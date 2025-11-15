@@ -3,12 +3,12 @@ package registry_api
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"net/http"
 
 	"ssle/registry/utils"
 
-	"go.etcd.io/etcd/pkg/v3/traceutil"
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 )
 
 func (state RegistryAPIState) deleteNodeServices(w http.ResponseWriter, r *http.Request) {
@@ -35,11 +35,21 @@ func (state RegistryAPIState) deleteNodeServices(w http.ResponseWriter, r *http.
 
 	ctx := r.Context()
 
-	kv := state.etcdServer.KV()
-	tx := kv.Write(traceutil.New("Clean node", state.etcdServer.Logger()))
+	res, err := state.etcdServer.Range(ctx, &etcdserverpb.RangeRequest{
+		Key:      nodeSvcKey,
+		RangeEnd: utils.PrefixEnd(nodeSvcKey),
+	})
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
-	res, err := tx.Range(ctx, nodeSvcKey, utils.PrefixEnd(nodeSvcKey), mvcc.RangeOptions{})
-	for _, kvRes := range res.KVs {
+	txn := &etcdserverpb.TxnRequest{
+		Success: []*etcdserverpb.RequestOp{},
+	}
+
+	for _, kvRes := range res.Kvs {
 		parts := bytes.Split(kvRes.Key, []byte("/"))
 		svcName := parts[len(parts)-2]
 		svcKey := fmt.Appendf(
@@ -51,13 +61,46 @@ func (state RegistryAPIState) deleteNodeServices(w http.ResponseWriter, r *http.
 			dc,
 			name,
 		)
-		tx.DeleteRange(svcKey, utils.PrefixEnd(svcKey))
-	}
-	tx.DeleteRange(nodeSvcKey, utils.PrefixEnd(nodeSvcKey))
-	tx.DeleteRange(promSvcKey, utils.PrefixEnd(promSvcKey))
 
-	tx.End()
-	kv.Commit()
+		txn.Success = append(txn.Success, &etcdserverpb.RequestOp{
+			Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+				RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+					Key:      svcKey,
+					RangeEnd: utils.PrefixEnd(svcKey),
+				},
+			},
+		})
+	}
+
+	txn.Success = append(txn.Success, &etcdserverpb.RequestOp{
+		Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+			RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+				Key:      nodeSvcKey,
+				RangeEnd: utils.PrefixEnd(nodeSvcKey),
+			},
+		},
+	})
+	txn.Success = append(txn.Success, &etcdserverpb.RequestOp{
+		Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+			RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+				Key:      promSvcKey,
+				RangeEnd: utils.PrefixEnd(promSvcKey),
+			},
+		},
+	})
+
+	txnRes, err := state.etcdServer.Txn(ctx, txn)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	if !txnRes.Succeeded {
+		log.Printf("Error: Failed to clean node: %v", res)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -101,15 +144,44 @@ func (state RegistryAPIState) deleteServiceInstance(w http.ResponseWriter, r *ht
 		instance,
 	)
 
-	kv := state.etcdServer.KV()
-	tx := kv.Write(traceutil.New("Remove service instance", state.etcdServer.Logger()))
+	txn := &etcdserverpb.TxnRequest{
+		Success: []*etcdserverpb.RequestOp{
+			{
+				Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+					RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+						Key: svcKey,
+					},
+				},
+			},
+			{
+				Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+					RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+						Key: dsSvcKey,
+					},
+				},
+			},
+			{
+				Request: &etcdserverpb.RequestOp_RequestDeleteRange{
+					RequestDeleteRange: &etcdserverpb.DeleteRangeRequest{
+						Key: promSvcKey,
+					},
+				},
+			},
+		},
+	}
 
-	tx.DeleteRange(svcKey, nil)
-	tx.DeleteRange(dsSvcKey, nil)
-	tx.DeleteRange(promSvcKey, nil)
+	res, err := state.etcdServer.Txn(r.Context(), txn)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
-	tx.End()
-	kv.Commit()
+	if !res.Succeeded {
+		log.Printf("Error: Failed to delete service: %v", res)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusNoContent)
 }

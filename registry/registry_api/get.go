@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"slices"
 
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 
 	"ssle/schemas"
 
@@ -25,17 +25,17 @@ func (state RegistryAPIState) getServiceInternal(
 	prefix []byte,
 	limit int,
 ) (map[string]schemas.ServiceSpec, error) {
-	kv := state.etcdServer.KV()
-
-	res, err := kv.Range(ctx, prefix, utils.PrefixEnd(prefix), mvcc.RangeOptions{
-		Limit: int64(limit),
+	res, err := state.etcdServer.Range(ctx, &etcdserverpb.RangeRequest{
+		Key:      prefix,
+		RangeEnd: utils.PrefixEnd(prefix),
+		Limit:    int64(limit),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	svcs := make(map[string]schemas.ServiceSpec, len(res.KVs))
-	for _, kv := range res.KVs {
+	svcs := make(map[string]schemas.ServiceSpec, len(res.Kvs))
+	for _, kv := range res.Kvs {
 		var tmp schemas.ServiceSpec
 		err = json.Unmarshal(kv.Value, &tmp)
 		if err != nil {

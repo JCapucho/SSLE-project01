@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -112,7 +113,12 @@ func registerService(
 	ports := []schemas.PortSpec{}
 	for port, bind := range ctr.NetworkSettings.Ports {
 		parts := strings.SplitN(string(port), "/", 2)
-		svcPort, _ := strconv.ParseUint(bind[0].HostPort, 10, 16)
+
+		rawPort := parts[0]
+		if len(bind) > 0 {
+			rawPort = bind[0].HostPort
+		}
+		svcPort, _ := strconv.ParseUint(rawPort, 10, 16)
 
 		ports = append(ports, schemas.PortSpec{
 			Name:     schemas.PathSegment(parts[0]),
@@ -151,6 +157,11 @@ func deleteService(
 }
 
 func cleanup(config *config.Config, state *state.State) {
+	if r := recover(); r != nil {
+		log.Println("Agent panicked:", r)
+		debug.PrintStack()
+	}
+
 	log.Println("Cleaning up")
 	res, err := state.RegistryDelete(config, "/svc")
 	httpResponseError("Error cleaning up", res, err)
@@ -203,22 +214,21 @@ func main() {
 	}
 
 	mux := dns.NewServeMux()
-	mux.Handle("cluster.local.", &ClusterDnsHandler{
+	mux.Handle("cluster.internal.", &ClusterDnsHandler{
 		config: &config,
 		state:  &state,
 	})
-	mux.Handle(".", &ForwardDnsHandler{
-		client: dns.NewClient(),
-	})
+	mux.Handle(".", NewForwardHandler(&config))
 
+	addr := fmt.Sprintf("%v:53", config.DNSBindAddr)
 	server := &dns.Server{
-		Addr:    "127.0.0.143:53",
+		Addr:    addr,
 		Net:     "udp",
 		Handler: mux,
 		UDPSize: 65535,
 	}
 
-	fmt.Println("Starting DNS server on 127.0.0.143")
+	log.Printf("Starting DNS server on %v\n", addr)
 	err = server.ListenAndServe()
 	if err != nil {
 		fmt.Printf("Failed to start server: %s\n", err.Error())

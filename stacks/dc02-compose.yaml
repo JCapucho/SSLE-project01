@@ -1,0 +1,27 @@
+services:
+  registry:
+    image: "ghcr.io/jcapucho/ssle/registry:latest"
+    restart: always
+    environment:
+      REGISTRY_NAME: "dc02"
+      REGISTRY_DIR: "/home/nonroot"
+      REGISTRY_PEER_ADVERTISE_HOSTNAME: 10.255.255.195
+      REGISTRY_REGISTRY_ADVERTISE_HOSTNAME: 10.255.255.195
+
+      REGISTRY_JOIN_URL: https://10.255.255.15:2381
+      REGISTRY_TOKEN_FILE: /run/secrets/registry-token
+    ports:
+      - "2380:2380"
+      - "2381:2381"
+      - "2382:2382"
+    volumes:
+      - registry-state:/home/nonroot
+    secrets:
+      - registry-token
+
+volumes:
+  registry-state:
+
+secrets:
+  registry-token:
+    file: ./token

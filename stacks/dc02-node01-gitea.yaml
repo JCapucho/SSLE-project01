@@ -1,0 +1,57 @@
+name: gitea-stack
+services:
+  gitea:
+    image: gitea/gitea:latest
+    dns: 172.17.0.1
+    labels:
+      manager: ssle
+      ssle.service: gitea
+      ssle.metrics: 3000
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: postgres.cluster.internal:5432
+      DB_NAME: gitea
+      DB_USER: gitea
+      DB_PASSWD: gitea
+      GITEA__metrics__ENABLED: true
+    restart: always
+    volumes:
+      - git_data:/data
+    ports:
+      - 3000:3000
+
+  db:
+    image: postgres:alpine
+    dns: 172.17.0.1
+    labels:
+      manager: ssle
+      ssle.service: postgres
+      ssle.metrics: 9187
+    environment:
+      POSTGRES_USER: gitea
+      POSTGRES_PASSWORD: gitea
+      POSTGRES_DB: gitea
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter
+    dns: 172.17.0.1
+    environment:
+      DATA_SOURCE_URI: "db:5432/gitea?sslmode=disable"
+      DATA_SOURCE_USER: gitea
+      DATA_SOURCE_PASS: gitea
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "9187:9187"
+
+volumes:
+  db_data:
+  git_data:
+  
+  

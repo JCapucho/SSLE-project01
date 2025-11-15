@@ -31,6 +31,7 @@ func main() {
 	members := []membership.Member{}
 	if config.JoinUrl != nil {
 		members, err = peer_api.ClusterRequestGetPeers(*config.JoinUrl, config, state)
+		log.Printf("Existing cluster members: %v\n", members)
 		if err != nil {
 			log.Fatalf("Failed to get cluster members: %v", err)
 		}

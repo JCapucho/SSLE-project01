@@ -1,0 +1,22 @@
+services:
+  agent:
+    image: "ghcr.io/jcapucho/ssle/agent:latest"
+    restart: always
+    environment:
+      AGENT_JOIN_URL: https://10.255.255.15:2382
+      AGENT_TOKEN_FILE: /run/secrets/token
+      AGENT_CA_FILE: /run/secrets/ca-crt
+      AGENT_DNS_BIND_ADDR: 0.0.0.0
+    ports:
+      - 172.17.0.1:53:53/udp
+    secrets:
+      - token
+      - ca-crt
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+secrets:
+  token:
+    file: ./token
+  ca-crt:
+    file: ./ca.crt

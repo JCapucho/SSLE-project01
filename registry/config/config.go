@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/netip"
 	"net/url"
+	"os"
 	"reflect"
 	"slices"
+	"strings"
 
 	"github.com/caarlos0/env/v11"
 
@@ -18,12 +20,14 @@ type Config struct {
 	Name string `env:"NAME,required"`
 	Dir  string `env:"DIR" envDefault:"state"`
 
-	InitialToken string   `env:"TOKEN"`
-	JoinUrl      *url.URL `env:"JOIN_URL"`
+	InitialToken     string   `env:"TOKEN"`
+	InitialTokenFile string   `env:"TOKEN_FILE"`
+	JoinUrl          *url.URL `env:"JOIN_URL"`
 
 	PeerListenAddr        netip.Addr       `env:"PEER_LISTEN_ADDR" envDefault:"0.0.0.0"`
 	PeerAdvertiseHostname schemas.Hostname `env:"PEER_ADVERTISE_HOSTNAME"`
 	EtcdListenPort        uint16           `env:"ETCD_LISTEN_PORT" envDefault:"2380"`
+	EtcdClientListenPort  uint16           `env:"ETCD_CLIENT_LISTEN_PORT" envDefault:"2389"`
 	PeerAPIListenPort     uint16           `env:"PEER_API_LISTEN_PORT"`
 
 	RegistryListenAddr        netip.Addr       `env:"REGISTRY_LISTEN_ADDR" envDefault:"0.0.0.0"`
@@ -43,8 +47,16 @@ func (config *Config) EtcdListenHost() string {
 	return schemas.HostnameFromAddr(config.PeerListenAddr).HostWithPort(config.EtcdListenPort)
 }
 
+func (config *Config) EtcdClientListenHost() string {
+	return schemas.HostnameFromAddr(config.PeerListenAddr).HostWithPort(config.EtcdClientListenPort)
+}
+
 func (config *Config) EtcdAdvertiseHost() string {
 	return config.PeerAdvertiseHostname.HostWithPort(config.EtcdListenPort)
+}
+
+func (config *Config) EtcdClientAdvertiseHost() string {
+	return config.PeerAdvertiseHostname.HostWithPort(config.EtcdClientListenPort)
 }
 
 func (config *Config) RegistryAPIListenHost() string {
@@ -63,10 +75,26 @@ func (config *Config) EtcdAdvertiseURLs() []url.URL {
 	return []url.URL{*advertiseUrl}
 }
 
+func (config *Config) EtcdClientAdvertiseURLs() []url.URL {
+	advertiseUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdClientAdvertiseHost()))
+	if err != nil {
+		log.Fatalf("Invalid peer client advertise URL: %v", err)
+	}
+	return []url.URL{*advertiseUrl}
+}
+
 func (config *Config) EtcdListenURLs() []url.URL {
 	listenUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdListenHost()))
 	if err != nil {
 		log.Fatalf("Invalid peer listen URL: %v", err)
+	}
+	return []url.URL{*listenUrl}
+}
+
+func (config *Config) EtcdClientListenURLs() []url.URL {
+	listenUrl, err := url.Parse(fmt.Sprintf("https://%v", config.EtcdClientListenHost()))
+	if err != nil {
+		log.Fatalf("Invalid peer client listen URL: %v", err)
 	}
 	return []url.URL{*listenUrl}
 }
@@ -163,8 +191,16 @@ func LoadConfig() Config {
 		log.Fatalf("Error loading configuration: %v", err)
 	}
 
+	if config.InitialTokenFile != "" {
+		token, err := os.ReadFile(config.InitialTokenFile)
+		if err != nil {
+			log.Fatalf("Error loading token file: %v", err)
+		}
+		config.InitialToken = strings.TrimSpace(string(token))
+	}
+
 	if config.JoinUrl != nil && config.InitialToken == "" {
-		log.Fatal("Token must be set when joining an existing cluster")
+		log.Fatal("Token or token file must be set when joining an existing cluster")
 	}
 
 	if !config.PeerAdvertiseHostname.IsValid() {

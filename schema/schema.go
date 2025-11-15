@@ -148,6 +148,7 @@ type ServiceSpec struct {
 
 type PrometheusServiceLabels struct {
 	Location   string `json:"__meta_location"`
+	Node       string `json:"__meta_node"`
 	DataCenter string `json:"__meta_datacenter"`
 	Service    string `json:"__meta_prometheus_job"`
 	Instance   string `json:"__meta_instance"`
@@ -172,8 +173,9 @@ func PrometheusServiceFromServiceSpec(spec *ServiceSpec) *PrometheusService {
 		Targets: Targets,
 		Labels: PrometheusServiceLabels{
 			Location:   spec.Location.String(),
+			Node:       spec.Node.String(),
 			DataCenter: spec.DataCenter.String(),
-			Service:    spec.DataCenter.String(),
+			Service:    spec.ServiceName.String(),
 			Instance:   spec.Instance.String(),
 		},
 	}

@@ -52,7 +52,9 @@ func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request)
 		*membership.NewMember(peerName, addPeerReq.AdvertisedURLS, "", &now),
 	)
 	if err != nil {
+		log.Printf("Error: Failed to add peer: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)

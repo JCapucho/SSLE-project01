@@ -203,8 +203,15 @@ func loadStateCA(config config.Config, token []byte, start time.Time) (string, s
 		log.Fatalf("Failed to load CA key pair: %v", err)
 	}
 
-	os.WriteFile(certFile, crtBytes, 0600)
-	os.WriteFile(keyFile, keyBytes, 0600)
+	err = os.WriteFile(certFile, crtBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write CA certificate: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, keyBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write CA key: %v", err)
+	}
 
 	return certFile, keyFile, keyPair
 }
@@ -220,8 +227,15 @@ func loadStateNodeCrt(config config.Config, CA tls.Certificate) (string, string,
 		log.Fatalf("Failed to load CA key pair: %v", err)
 	}
 
-	os.WriteFile(certFile, crtBytes, 0600)
-	os.WriteFile(keyFile, keyBytes, 0600)
+	err = os.WriteFile(certFile, crtBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write Node certificate: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, keyBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write Node key: %v", err)
+	}
 
 	return certFile, keyFile, keyPair
 }

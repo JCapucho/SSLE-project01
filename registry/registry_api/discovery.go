@@ -7,7 +7,7 @@ import (
 
 	"ssle/registry/utils"
 
-	"go.etcd.io/etcd/server/v3/storage/mvcc"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 )
 
 func (state RegistryAPIState) prometheusDiscovery(w http.ResponseWriter, r *http.Request) {
@@ -17,11 +17,12 @@ func (state RegistryAPIState) prometheusDiscovery(w http.ResponseWriter, r *http
 		return
 	}
 
-	prefix := fmt.Sprintf("%v/%v", utils.PrometheusServicesNamespace, dc)
-	bytes := []byte(prefix)
+	prefix := fmt.Appendf(nil, "%v/%v", utils.PrometheusServicesNamespace, dc)
 
-	kv := state.etcdServer.KV()
-	res, err := kv.Range(r.Context(), bytes, utils.PrefixEnd(bytes), mvcc.RangeOptions{})
+	res, err := state.etcdServer.Range(r.Context(), &etcdserverpb.RangeRequest{
+		Key:      prefix,
+		RangeEnd: utils.PrefixEnd(prefix),
+	})
 	if err != nil {
 		log.Print(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
@@ -36,7 +37,7 @@ func (state RegistryAPIState) prometheusDiscovery(w http.ResponseWriter, r *http
 		return
 	}
 
-	for i, kv := range res.KVs {
+	for i, kv := range res.Kvs {
 		if i != 0 {
 			_, err = w.Write([]byte(","))
 			if err != nil {

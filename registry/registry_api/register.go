@@ -7,8 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"go.etcd.io/etcd/pkg/v3/traceutil"
-	"go.etcd.io/etcd/server/v3/lease"
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 
 	"ssle/schemas"
 
@@ -97,11 +96,27 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	kv := state.etcdServer.KV()
+	txn := &etcdserverpb.TxnRequest{
+		Success: []*etcdserverpb.RequestOp{
+			{
+				Request: &etcdserverpb.RequestOp_RequestPut{
+					RequestPut: &etcdserverpb.PutRequest{
+						Key:   svcKey,
+						Value: serializedSpec,
+					},
+				},
+			},
+			{
+				Request: &etcdserverpb.RequestOp_RequestPut{
+					RequestPut: &etcdserverpb.PutRequest{
+						Key:   dsSvcKey,
+						Value: []byte{},
+					},
+				},
+			},
+		},
+	}
 
-	tx := kv.Write(traceutil.New("Register service", state.etcdServer.Logger()))
-	tx.Put(svcKey, serializedSpec, lease.NoLease)
-	tx.Put(dsSvcKey, []byte{}, lease.NoLease)
 	if serializedPrometheusService != nil {
 		promSvcKey := fmt.Appendf(
 			nil,
@@ -112,11 +127,29 @@ func (state RegistryAPIState) registerService(w http.ResponseWriter, r *http.Req
 			spec.ServiceName,
 			spec.Instance,
 		)
-		tx.Put(promSvcKey, serializedPrometheusService, lease.NoLease)
-	}
-	tx.End()
 
-	kv.Commit()
+		txn.Success = append(txn.Success, &etcdserverpb.RequestOp{
+			Request: &etcdserverpb.RequestOp_RequestPut{
+				RequestPut: &etcdserverpb.PutRequest{
+					Key:   promSvcKey,
+					Value: serializedPrometheusService,
+				},
+			},
+		})
+	}
+
+	res, err := state.etcdServer.Txn(r.Context(), txn)
+	if err != nil {
+		log.Print(err.Error())
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	if !res.Succeeded {
+		log.Printf("Error: Failed to register service: %v", res)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	utils.HttpRespondJson(w, http.StatusOK, spec)
 }
