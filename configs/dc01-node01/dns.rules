@@ -1,0 +1,2 @@
+# /var/lib/suricata/rules/dns.rules
+alert dns any any -> any any (msg:"DNS Query to Malicious FQDN"; flow:to_client; dns.queries.rrname; dataset:isset, domains_iocs, type string, load /var/lib/suricata/rules/domains_iocs.lst, memcap 10mb, hashsize 1024; classtype: trojan-activity; sid:1000000; rev:1;)

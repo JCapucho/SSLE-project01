@@ -10,6 +10,13 @@
     <field name="urlhaus.url_threat">malware_download</field>
     <description>URLhaus: An endpoint connected to a url known for deploying malware.</description>
   </rule>
+  
+  <rule id="100012" level="12">
+      <if_sid>86601</if_sid>
+      <field name="dns.answers" type="pcre2">.+</field>
+      <match>DNS Query to Malicious FQDN</match>
+      <description>DNS Query to Malicious FQDN</description>
+  </rule>
 </group>
 
 <group name="ossec,">
