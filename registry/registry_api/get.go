@@ -102,9 +102,7 @@ func (state RegistryAPIState) getService(w http.ResponseWriter, r *http.Request)
 	if instanceParam != "" {
 		key := fmt.Appendf(namePrefix, "%v", instanceParam)
 		svcs, err = state.getServiceInternal(ctx, key, 1)
-	}
-
-	if instanceParam == "" {
+	} else {
 		svcs, err = state.getServiceInternal(ctx, namePrefix, MaxGetServiceLimit)
 	}
 
