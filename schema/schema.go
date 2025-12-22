@@ -201,3 +201,9 @@ func (spec *RegisterServiceRequest) UnmarshalJSON(data []byte) error {
 	*spec = RegisterServiceRequest(raw)
 	return nil
 }
+
+type NodeSchema struct {
+	Name       PathSegment `json:"name" validate:"required"`
+	Datacenter PathSegment `json:"dc" validate:"required"`
+	Location   PathSegment `json:"location" validate:"required"`
+}

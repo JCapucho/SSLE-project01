@@ -98,6 +98,7 @@ func createHTTPClient(state state.State) *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
+				ServerName:   "registry.cluster.internal",
 				RootCAs:      caCertPool,
 				Certificates: []tls.Certificate{state.ServerKeyPair},
 			},

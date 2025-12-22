@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 
@@ -14,18 +13,13 @@ import (
 	"ssle/registry/utils"
 )
 
-type AddNodeRequest struct {
-	Name       schemas.PathSegment `json:"name" validate:"required"`
-	Datacenter schemas.PathSegment `json:"dc" validate:"required"`
-	Location   schemas.PathSegment `json:"location" validate:"required"`
-}
-
 type AddNodeResponse struct {
-	Token string `json:"token"`
+	Crt string `json:"crt"`
+	Key string `json:"key"`
 }
 
 func (state PeerAPIState) addNodeHandler(w http.ResponseWriter, r *http.Request) {
-	addNodeReq, err := utils.DeserializeRequestBody[AddNodeRequest](w, r)
+	addNodeReq, err := utils.DeserializeRequestBody[schemas.NodeSchema](w, r)
 	if err != nil {
 		return
 	}
@@ -39,7 +33,7 @@ func (state PeerAPIState) addNodeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	txn := &etcdserverpb.TxnRequest{
+	res, err := state.etcdServer.Txn(r.Context(), &etcdserverpb.TxnRequest{
 		Compare: []*etcdserverpb.Compare{{
 			Result: etcdserverpb.Compare_EQUAL,
 			Target: etcdserverpb.Compare_CREATE,
@@ -56,9 +50,7 @@ func (state PeerAPIState) addNodeHandler(w http.ResponseWriter, r *http.Request)
 				},
 			},
 		}},
-	}
-
-	res, err := state.etcdServer.Txn(r.Context(), txn)
+	})
 	if err != nil {
 		log.Print(err.Error())
 		http.Error(w, "", http.StatusInternalServerError)
@@ -70,14 +62,14 @@ func (state PeerAPIState) addNodeHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	token := utils.NewToken(365 * 24 * time.Hour)
-	token.SetString("name", addNodeReq.Name.String())
-	token.SetString("dc", addNodeReq.Datacenter.String())
-	token.SetString("loc", addNodeReq.Location.String())
-
-	encryptedToken := token.V4Encrypt(state.state.TokenKey, []byte(utils.DCImplicit))
+	crt, key := utils.CreateAgentCrt(
+		state.state,
+		addNodeReq.Datacenter.String(),
+		addNodeReq.Name.String(),
+	)
 
 	utils.HttpRespondJson(w, http.StatusCreated, AddNodeResponse{
-		Token: encryptedToken,
+		Crt: string(crt),
+		Key: string(key),
 	})
 }

@@ -22,9 +22,6 @@ import (
 	"time"
 
 	"ssle/registry/config"
-
-	"aidanwoods.dev/go-paseto"
-
 	"ssle/schemas"
 )
 
@@ -38,8 +35,6 @@ type State struct {
 	ServerKeyPair tls.Certificate
 	ServerCrtFile string
 	ServerKeyFile string
-
-	TokenKey paseto.V4SymmetricKey
 }
 
 func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
@@ -112,8 +107,8 @@ func createNodeCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
 			OrganizationalUnit: []string{"Servers"},
 			CommonName:         config.Name,
 		},
+		DNSNames:              []string{"registry.cluster.internal"},
 		IPAddresses:           []net.IP{},
-		DNSNames:              []string{},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
@@ -122,7 +117,7 @@ func createNodeCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
 	}
 
 	addHostnameToCert(&template, config.PeerAdvertiseHostname)
-	addHostnameToCert(&template, config.RegistryAdvertiseHostname)
+	addHostnameToCert(&template, config.AgentAPIAdvertiseHostname)
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, CA.Leaf, pub, CA.PrivateKey)
 	if err != nil {
@@ -250,15 +245,6 @@ func LoadState(config config.Config) State {
 	caCrtFile, _, CA := loadStateCA(config, token, start)
 	serverCrtFile, serverKeyFile, serverKeyPair := loadStateNodeCrt(config, CA)
 
-	tokenKeyRaw, err := hkdf.Expand(sha256.New, token, "REGISTRY", 32)
-	if err != nil {
-		panic(err.Error())
-	}
-	tokenKey, err := paseto.V4SymmetricKeyFromBytes(tokenKeyRaw)
-	if err != nil {
-		panic(err.Error())
-	}
-
 	return State{
 		Token:   token,
 		EtcdDir: filepath.Join(config.Dir, "etcd"),
@@ -269,7 +255,5 @@ func LoadState(config config.Config) State {
 		ServerKeyPair: serverKeyPair,
 		ServerCrtFile: serverCrtFile,
 		ServerKeyFile: serverKeyFile,
-
-		TokenKey: tokenKey,
 	}
 }

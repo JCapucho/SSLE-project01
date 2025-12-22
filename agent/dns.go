@@ -2,22 +2,19 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
-	"net/url"
-	"slices"
+	"net/netip"
 	"strings"
 	"time"
 
 	"codeberg.org/miekg/dns"
 	"codeberg.org/miekg/dns/dnsconf"
 
-	"ssle/schemas"
-
 	"ssle/agent/config"
 	"ssle/agent/state"
+	pb "ssle/services"
 )
 
 type ClusterDnsHandler struct {
@@ -51,38 +48,44 @@ func (h *ClusterDnsHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, 
 			break
 		}
 
-		queryPath := "/svc"
-		for _, v := range slices.Backward(parts) {
-			queryPath = fmt.Sprintf("%v/%v", queryPath, url.PathEscape(v))
+		queryLastIdx := len(parts) - 1
+
+		req := &pb.DiscoverRequest{
+			Service: &parts[queryLastIdx],
+		}
+		if queryLastIdx > 0 {
+			req.Location = &parts[queryLastIdx-1]
+		}
+		if queryLastIdx > 1 {
+			req.Datacenter = &parts[queryLastIdx-2]
+		}
+		if queryLastIdx > 3 {
+			req.Node = &parts[queryLastIdx-3]
+		}
+		if queryLastIdx > 4 {
+			req.Instance = &parts[queryLastIdx-4]
 		}
 
-		res, err := h.state.RegistryGet(h.config, queryPath)
-		if httpResponseError("Error obtaining service", res, err) {
-			r.MsgHeader.Rcode = dns.RcodeNameError
-			break
-		}
-
-		var specs []schemas.ServiceSpec
-		err = json.NewDecoder(res.Body).Decode(&specs)
+		res, err := h.state.RegistryClient.Discover(ctx, req)
 		if err != nil {
+			log.Printf("Error obtaining service: %v", err)
 			r.MsgHeader.Rcode = dns.RcodeNameError
-			log.Printf("Error obtaining service: %v\n", err)
 			break
 		}
 
-		for _, spec := range specs {
+		for _, spec := range res.Services {
 			for _, addr := range spec.Addresses {
-				if addr.IsAddress() {
-					ipAddr := addr.Address()
-					if ipAddr.Is4() && header.Class == dns.TypeA {
+				ip, err := netip.ParseAddr(addr)
+				if err == nil {
+					if ip.Is4() && header.Class == dns.TypeA {
 						answers = append(answers, &dns.A{
 							Hdr: dns.Header{Name: header.Name, Class: dns.ClassINET, TTL: 30},
-							A:   ipAddr.AsSlice(),
+							A:   ip.AsSlice(),
 						})
-					} else if ipAddr.Is6() && header.Class == dns.TypeA {
+					} else if ip.Is6() && header.Class == dns.TypeA {
 						answers = append(answers, &dns.AAAA{
 							Hdr:  dns.Header{Name: header.Name, Class: dns.ClassINET, TTL: 30},
-							AAAA: ipAddr.AsSlice(),
+							AAAA: ip.AsSlice(),
 						})
 					}
 				} else {

@@ -1,0 +1,74 @@
+option go_package = "ssle/services";
+
+message PortSpec {
+    required string name = 1;
+    required uint32 port = 2;
+    optional string protocol = 3;
+}
+
+message ServiceSpec {
+    required string service_name = 1;
+    required string instance = 2;
+
+    required string location = 3;
+    required string datacenter = 4;
+    required string node = 5;
+
+    repeated string addresses = 6;
+    repeated PortSpec ports = 7;
+    optional uint32 metrics_port = 8;
+}
+
+message DiscoverRequest {
+    required string service = 1;
+    optional string location = 2;
+    optional string datacenter = 3;
+    optional string node = 4;
+    optional string instance = 5;
+}
+
+message DiscoverResponse {
+    repeated ServiceSpec services = 1;
+}
+
+message RegisterServiceRequest {
+    required string service = 1;
+    required string instance = 2;
+
+    repeated string addresses = 3;
+    repeated PortSpec ports = 4;
+    optional uint32 metrics_port = 5;
+}
+message RegisterServiceResponse {
+    required ServiceSpec service = 1;
+}
+
+message DeregisterServiceRequest {
+    required string service = 1;
+    required string instance = 2;
+}
+message DeregisterServiceResponse {}
+
+message HeartbeatRequest {}
+message HeartbeatResponse {}
+
+message ConfigRequest {}
+message ConfigResponse {
+    optional bytes certificate = 1;
+    optional bytes key = 2;
+    required uint32 heartbeat_period = 3;
+    required uint64 renew_period = 4;
+    repeated string registry_addrs = 5;
+}
+
+message ResetRequest {}
+message ResetResponse {}
+
+service AgentAPI {
+   rpc Discover(DiscoverRequest) returns (DiscoverResponse) {}
+   rpc Register(RegisterServiceRequest) returns (RegisterServiceResponse) {}
+   rpc Deregister(DeregisterServiceRequest) returns (DeregisterServiceResponse) {}
+   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
+   rpc Config(ConfigRequest) returns (ConfigResponse) {}
+   rpc Reset(ResetRequest) returns (ResetResponse) {}
+}

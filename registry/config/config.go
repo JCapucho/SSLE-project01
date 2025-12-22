@@ -27,12 +27,12 @@ type Config struct {
 	PeerListenAddr        netip.Addr       `env:"PEER_LISTEN_ADDR" envDefault:"0.0.0.0"`
 	PeerAdvertiseHostname schemas.Hostname `env:"PEER_ADVERTISE_HOSTNAME"`
 	EtcdListenPort        uint16           `env:"ETCD_LISTEN_PORT" envDefault:"2380"`
-	EtcdClientListenPort  uint16           `env:"ETCD_CLIENT_LISTEN_PORT" envDefault:"2389"`
+	EtcdClientListenPort  uint16           `env:"ETCD_CLIENT_LISTEN_PORT"`
 	PeerAPIListenPort     uint16           `env:"PEER_API_LISTEN_PORT"`
 
-	RegistryListenAddr        netip.Addr       `env:"REGISTRY_LISTEN_ADDR" envDefault:"0.0.0.0"`
-	RegistryAdvertiseHostname schemas.Hostname `env:"REGISTRY_ADVERTISE_HOSTNAME"`
-	RegistryAPIListenPort     uint16           `env:"REGISTRY_API_LISTEN_PORT"`
+	AgentAPIListenAddr        netip.Addr       `env:"AGENT_LISTEN_ADDR" envDefault:"0.0.0.0"`
+	AgentAPIAdvertiseHostname schemas.Hostname `env:"AGENT_ADVERTISE_HOSTNAME"`
+	AgentAPIListenPort        uint16           `env:"AGENT_API_LISTEN_PORT"`
 }
 
 func (config *Config) PeerAPIListenHost() string {
@@ -59,12 +59,12 @@ func (config *Config) EtcdClientAdvertiseHost() string {
 	return config.PeerAdvertiseHostname.HostWithPort(config.EtcdClientListenPort)
 }
 
-func (config *Config) RegistryAPIListenHost() string {
-	return schemas.HostnameFromAddr(config.RegistryListenAddr).HostWithPort(config.RegistryAPIListenPort)
+func (config *Config) AgentAPIListenHost() string {
+	return schemas.HostnameFromAddr(config.AgentAPIListenAddr).HostWithPort(config.AgentAPIListenPort)
 }
 
-func (config *Config) RegistryAPIAdvertiseHost() string {
-	return config.RegistryAdvertiseHostname.HostWithPort(config.RegistryAPIListenPort)
+func (config *Config) AgentAPIAdvertiseHost() string {
+	return config.AgentAPIAdvertiseHostname.HostWithPort(config.AgentAPIListenPort)
 }
 
 func (config *Config) EtcdAdvertiseURLs() []url.URL {
@@ -213,16 +213,20 @@ func LoadConfig() Config {
 		log.Printf("Peer advertise host: %v", config.PeerAdvertiseHostname)
 	}
 
-	if !config.RegistryAdvertiseHostname.IsValid() {
-		config.RegistryAdvertiseHostname = config.PeerAdvertiseHostname
+	if !config.AgentAPIAdvertiseHostname.IsValid() {
+		config.AgentAPIAdvertiseHostname = config.PeerAdvertiseHostname
+	}
+
+	if config.EtcdClientListenPort == 0 {
+		config.EtcdClientListenPort = config.EtcdListenPort + 1
 	}
 
 	if config.PeerAPIListenPort == 0 {
-		config.PeerAPIListenPort = config.EtcdListenPort + 1
+		config.PeerAPIListenPort = config.EtcdClientListenPort + 1
 	}
 
-	if config.RegistryAPIListenPort == 0 {
-		config.RegistryAPIListenPort = config.PeerAPIListenPort + 1
+	if config.AgentAPIListenPort == 0 {
+		config.AgentAPIListenPort = config.PeerAPIListenPort + 1
 	}
 
 	return config

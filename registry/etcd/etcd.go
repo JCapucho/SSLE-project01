@@ -11,30 +11,49 @@ import (
 
 	"ssle/registry/config"
 	"ssle/registry/state"
+	"ssle/registry/utils"
 
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
 )
 
-func EtcdPostStartUpdate(etcd *embed.Etcd) {
+func EtcdPostStartUpdate(config *config.Config, etcd *embed.Etcd) {
 	PeerURLs := make([]string, len(etcd.Config().AdvertisePeerUrls))
 	for i, url := range etcd.Config().AdvertisePeerUrls {
 		PeerURLs[i] = url.String()
 	}
 
+	ClientUrls := make([]string, len(etcd.Config().AdvertiseClientUrls))
+	for i, url := range etcd.Config().AdvertiseClientUrls {
+		ClientUrls[i] = url.String()
+	}
+
 	_, err := etcd.Server.UpdateMember(
-		context.TODO(),
+		context.Background(),
 		membership.Member{
 			ID: etcd.Server.MemberID(),
 			RaftAttributes: membership.RaftAttributes{
 				PeerURLs:  PeerURLs,
 				IsLearner: false,
 			},
+			Attributes: membership.Attributes{
+				ClientURLs: ClientUrls,
+			},
 		},
 	)
 	if err != nil {
 		log.Printf("Failed to update member URLs: %v", err)
+	}
+
+	key := fmt.Appendf(nil, "%v/%v", utils.PeerAgentApiNamespace, etcd.Config().Name)
+	_, err = etcd.Server.Put(context.Background(), &etcdserverpb.PutRequest{
+		Key:   key,
+		Value: []byte(config.AgentAPIAdvertiseHost()),
+	})
+	if err != nil {
+		log.Printf("Failed to update member agent api address: %v", err)
 	}
 }
 
@@ -50,6 +69,7 @@ func CreateEtcdConfig(members []membership.Member, state *state.State, config *c
 	etcdCfg.InitialClusterToken = base64.StdEncoding.EncodeToString(etcdToken)
 
 	etcdCfg.PeerTLSInfo = transport.TLSInfo{
+		ServerName:     "registry.cluster.internal",
 		CertFile:       state.ServerCrtFile,
 		KeyFile:        state.ServerKeyFile,
 		ClientCertAuth: true,

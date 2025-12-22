@@ -1,115 +1,242 @@
 package state
 
 import (
-	"bytes"
+	"bufio"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
-	"io"
+	"fmt"
 	"log"
-	"net/http"
 	"os"
-
-	"ssle/agent/config"
+	"path/filepath"
+	"strings"
+	"sync"
+	"sync/atomic"
 
 	dockerClient "github.com/docker/docker/client"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/resolver"
+
+	"ssle/agent/config"
+	pb "ssle/services"
 )
 
-type State struct {
-	RegistryClient *http.Client
-	DockerClient   *dockerClient.Client
+const (
+	registryResolverScheme = "registry"
+)
+
+func loadAgentCrt(config *config.Config) (string, string, tls.Certificate) {
+	certFile := filepath.Join(config.Dir, "agent.crt")
+	keyFile := filepath.Join(config.Dir, "agent.key")
+
+	crtBytes, err := os.ReadFile(certFile)
+	if err != nil && os.IsNotExist(err) {
+		crtBytes, err = os.ReadFile(config.CrtFile)
+	}
+	if err != nil {
+		log.Fatalf("Failed to load agent certificate: %v", err)
+	}
+
+	keyBytes, err := os.ReadFile(keyFile)
+	if err != nil && os.IsNotExist(err) {
+		keyBytes, err = os.ReadFile(config.KeyFile)
+	}
+	if err != nil {
+		log.Fatalf("Failed to load agent key: %v", err)
+	}
+
+	keyPair, err := tls.X509KeyPair(crtBytes, keyBytes)
+	if err != nil {
+		log.Fatalf("Failed to load agent key pair: %v", err)
+	}
+
+	err = os.WriteFile(certFile, crtBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write agent certificate: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, keyBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write agent key: %v", err)
+	}
+
+	return certFile, keyFile, keyPair
 }
 
-func LoadState(config *config.Config) State {
+func writeRegistryAddresses(fileName string, addrs []string) error {
+	file, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	for _, line := range addrs {
+		fmt.Fprintln(w, line)
+	}
+
+	return w.Flush()
+}
+
+func loadRegistryAddresses(config *config.Config) (string, []string) {
+	addrsFile := filepath.Join(config.Dir, "addrs")
+
+	file, err := os.Open(addrsFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			addrs := strings.Split(config.JoinUrl, ",")
+
+			err := writeRegistryAddresses(addrsFile, addrs)
+			if err != nil {
+				log.Fatalf("Error: Failed to write registry addresses: %v", err)
+			}
+
+			return addrsFile, addrs
+		} else {
+			log.Fatalf("Failed to load registry addresses: %v", err)
+		}
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	if scanner.Err() != nil {
+		log.Fatalf("Failed to load registry addresses: %v", err)
+	}
+
+	return addrsFile, lines
+}
+
+type State struct {
+	mu sync.Mutex
+
+	credentials    *tls.Certificate
+	RegistryClient pb.AgentAPIClient
+	DockerClient   *dockerClient.Client
+
+	addrs             atomic.Pointer[[]string]
+	addrsFile         string
+	certFile, keyFile string
+}
+
+func LoadState(config *config.Config) *State {
+	err := os.Mkdir(config.Dir, 0700)
+	if err != nil && !os.IsExist(err) {
+		log.Fatalf("Failed to create state dir: %v", err)
+	}
+
 	CAPem, err := os.ReadFile(config.CAFile)
 	if err != nil {
 		log.Fatalf("Failed to read CA certificate: %v", err)
 	}
 
+	certFile, keyFile, creds := loadAgentCrt(config)
+	addrsFile, addrs := loadRegistryAddresses(config)
+
+	state := &State{
+		credentials: &creds,
+		addrsFile:   addrsFile,
+		certFile:    certFile,
+		keyFile:     keyFile,
+	}
+
+	state.addrs.Store(&addrs)
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(CAPem)
 
-	regClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		},
+	transportCred := credentials.NewTLS(&tls.Config{
+		ServerName:           "registry.cluster.internal",
+		GetClientCertificate: state.clientCertificateForTLS,
+		RootCAs:              caCertPool,
+	})
+
+	resolver := &registryResolverBuilder{addrs: &state.addrs}
+	url := fmt.Sprintf("%v:///", registryResolverScheme)
+	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(transportCred), grpc.WithResolvers(resolver))
+	if err != nil {
+		log.Fatalf("Failed to read grpc client: %v", err)
 	}
+	state.RegistryClient = pb.NewAgentAPIClient(conn)
 
 	dcli, err := dockerClient.NewClientWithOpts(dockerClient.FromEnv, dockerClient.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatalf("Failed to create docker client: %v", err)
 	}
+	state.DockerClient = dcli
 
-	return State{
-		RegistryClient: regClient,
-		DockerClient:   dcli,
+	return state
+}
+
+func (state *State) UpdateCredentials(crtBytes []byte, keyBytes []byte) error {
+	state.mu.Lock()
+	defer state.mu.Unlock()
+
+	keyPair, err := tls.X509KeyPair(crtBytes, keyBytes)
+	if err != nil {
+		return err
+	}
+
+	state.credentials = &keyPair
+
+	err = os.WriteFile(state.certFile, crtBytes, 0600)
+	if err != nil {
+		log.Printf("Error: Failed to write agent certificate: %v", err)
+	}
+
+	err = os.WriteFile(state.keyFile, keyBytes, 0600)
+	if err != nil {
+		log.Printf("Error: Failed to write agent key: %v", err)
+	}
+
+	return nil
+}
+
+func (state *State) clientCertificateForTLS(req *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+	return state.credentials, nil
+}
+
+func (state *State) UpdateAddrs(addrs []string) {
+	state.addrs.Store(&addrs)
+
+	err := writeRegistryAddresses(state.addrsFile, addrs)
+	if err != nil {
+		log.Printf("Error: Failed to write registry addresses: %v", err)
 	}
 }
 
-func (state *State) NewRegistryRequest(
-	config *config.Config,
-	method string,
-	path string,
-	body io.Reader,
-) (*http.Request, error) {
-	reqUrl := *config.JoinUrl
-	reqUrl.Path = path
-
-	req, err := http.NewRequest(method, reqUrl.String(), body)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Add("Authorization", "Bearer "+config.Token)
-
-	return req, nil
+type registryResolverBuilder struct {
+	addrs *atomic.Pointer[[]string]
 }
 
-func (state *State) RegistryGet(config *config.Config, path string) (*http.Response, error) {
-	req, err := state.NewRegistryRequest(config, "GET", path, nil)
-	if err != nil {
-		return nil, err
+func (builder *registryResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
+	r := &registryResolver{
+		target: target,
+		cc:     cc,
+		addrs:  builder.addrs,
 	}
+	r.start()
+	return r, nil
+}
+func (*registryResolverBuilder) Scheme() string { return registryResolverScheme }
 
-	res, err := state.RegistryClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+type registryResolver struct {
+	target resolver.Target
+	cc     resolver.ClientConn
+	addrs  *atomic.Pointer[[]string]
 }
 
-func (state *State) RegistryPost(config *config.Config, path string, v any) (*http.Response, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		log.Printf("Error while building JSON body: %v", err)
-		return nil, err
+func (r *registryResolver) start() {
+	rawAddrs := r.addrs.Load()
+	addrs := make([]resolver.Address, len(*rawAddrs))
+	for i, s := range *rawAddrs {
+		addrs[i] = resolver.Address{Addr: s}
 	}
-
-	req, err := state.NewRegistryRequest(config, "POST", path, bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := state.RegistryClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	r.cc.UpdateState(resolver.State{Addresses: addrs})
 }
-
-func (state *State) RegistryDelete(config *config.Config, path string) (*http.Response, error) {
-	req, err := state.NewRegistryRequest(config, "DELETE", path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := state.RegistryClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
+func (*registryResolver) ResolveNow(resolver.ResolveNowOptions) {}
+func (*registryResolver) Close()                                {}

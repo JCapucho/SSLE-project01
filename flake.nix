@@ -29,7 +29,7 @@
               pkgs.etcd
               pkgs.gopls
 
-              pkgs.containerd
+              pkgs.protobuf
             ];
           };
         }
