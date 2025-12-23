@@ -1,0 +1,35 @@
+option go_package = "ssle/services";
+
+message Peer {
+  required string id = 1;
+  required string name = 2;
+  repeated string peer_urls = 3;
+  repeated string client_urls = 4;
+}
+
+message GetPeersRequest {}
+message GetPeersResponse {
+  repeated Peer peers = 1;
+}
+
+message AddSelfPeerRequest {
+  repeated string advertised_urls = 1;
+}
+message AddSelfPeerResponse {}
+
+message AddAgentRequest {
+  required string name = 1;
+  required string datacenter = 2;
+  required string location = 3;
+}
+message AddAgentResponse {
+  required bytes certificate = 1;
+  required bytes key = 2;
+}
+
+service PeerAPI {
+   rpc GetPeers(GetPeersRequest) returns (GetPeersResponse) {}
+   rpc AddSelfPeer(AddSelfPeerRequest) returns (AddSelfPeerResponse) {}
+
+   rpc AddAgent(AddAgentRequest) returns (AddAgentResponse) {}
+}

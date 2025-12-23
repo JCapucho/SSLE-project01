@@ -72,9 +72,9 @@ func (server *AgentAPIServer) Discover(ctx context.Context, req *pb.DiscoverRequ
 	}
 
 	svc := *req.Service
-	name := node.Name.String()
-	dc := node.Datacenter.String()
-	location := node.Location.String()
+	name := node.Name
+	dc := node.Datacenter
+	location := node.Location
 
 	if req.Location != nil {
 		location = *req.Location

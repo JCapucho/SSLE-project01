@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"slices"
 	"time"
 
@@ -24,13 +23,11 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
+	"ssle/registry/schemas"
 	"ssle/registry/state"
-	"ssle/schemas"
 )
 
 const (
-	ContentTypeJSON = "application/json"
-
 	ServiceNamespace            = "svc"
 	DCServicesNamespace         = "dcsvc"
 	PrometheusServicesNamespace = "prom"
@@ -217,33 +214,6 @@ func GetNodeLease(ctx context.Context, etcd *etcdserver.EtcdServer, dc string, n
 	}
 
 	return 0, ServerError
-}
-
-func DeserializeRequestBody[T any](w http.ResponseWriter, r *http.Request) (T, error) {
-	var req T
-
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return req, err
-	}
-
-	err = schemas.Validate.Struct(req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return req, err
-	}
-
-	return req, nil
-}
-
-func HttpRespondJson[T any](w http.ResponseWriter, statusCode int, val T) {
-	w.Header().Set("Content-Type", ContentTypeJSON)
-	w.WriteHeader(statusCode)
-	err := json.NewEncoder(w).Encode(val)
-	if err != nil {
-		log.Printf("Error while responding with JSON body: %v", err.Error())
-	}
 }
 
 func PrefixEnd(prefix []byte) []byte {

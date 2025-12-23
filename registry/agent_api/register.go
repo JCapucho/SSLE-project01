@@ -53,17 +53,17 @@ func (server *AgentAPIServer) Register(ctx context.Context, req *pb.RegisterServ
 		"%v/%v/%v/%v/%v/%v",
 		utils.ServiceNamespace,
 		*spec.ServiceName,
-		node.Location.String(),
-		node.Datacenter.String(),
-		node.Name.String(),
+		node.Location,
+		node.Datacenter,
+		node.Name,
 		*spec.Instance,
 	)
 	dsSvcKey := fmt.Appendf(
 		nil,
 		"%v/%v/%v/%v/%v",
 		utils.DCServicesNamespace,
-		node.Datacenter.String(),
-		node.Name.String(),
+		node.Datacenter,
+		node.Name,
 		*spec.ServiceName,
 		*spec.Instance,
 	)
@@ -74,7 +74,7 @@ func (server *AgentAPIServer) Register(ctx context.Context, req *pb.RegisterServ
 		return nil, utils.ServerError
 	}
 
-	nodeLease, err := utils.GetNodeLease(ctx, server.EtcdServer, node.Datacenter.String(), node.Name.String())
+	nodeLease, err := utils.GetNodeLease(ctx, server.EtcdServer, node.Datacenter, node.Name)
 	if err != nil {
 		return nil, err
 	}

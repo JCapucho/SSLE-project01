@@ -1,168 +1,197 @@
 package peer_api
 
 import (
-	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
+	"net"
 	"net/url"
+	"strconv"
 	"time"
 
+	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/server/v3/etcdserver"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/membership"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 
 	"ssle/registry/config"
+	"ssle/registry/schemas"
 	"ssle/registry/state"
 	"ssle/registry/utils"
+	pb "ssle/services"
 )
 
-type PeerAPIState struct {
-	state      *state.State
-	etcdServer *etcdserver.EtcdServer
+var (
+	InvalidAdvertiseUrlError = status.Errorf(codes.InvalidArgument, "Advertise url is not a valid url")
+	MissingAdvertiseUrlError = status.Errorf(codes.InvalidArgument, "At least one advertised URL must be set")
+
+	AgentAlreadyExistsError = status.Errorf(codes.AlreadyExists, "Agent already exists")
+)
+
+type PeerAPIServer struct {
+	pb.UnimplementedPeerAPIServer
+	State      *state.State
+	EtcdServer *etcdserver.EtcdServer
 }
 
-type AddPeerRequest struct {
-	AdvertisedURLS []url.URL `json:"advertisedURLs"`
+func (server *PeerAPIServer) GetPeers(ctx context.Context, req *pb.GetPeersRequest) (*pb.GetPeersResponse, error) {
+	members := server.EtcdServer.Cluster().Members()
+	peers := make([]*pb.Peer, len(members))
+	for i, m := range members {
+		id := strconv.FormatUint(uint64(m.ID), 10)
+		peers[i] = &pb.Peer{
+			Id:         &id,
+			Name:       &m.Name,
+			PeerUrls:   m.RaftAttributes.PeerURLs,
+			ClientUrls: m.Attributes.ClientURLs,
+		}
+	}
+	return &pb.GetPeersResponse{Peers: peers}, nil
 }
 
-func (state PeerAPIState) listPeerHandler(w http.ResponseWriter, r *http.Request) {
-	utils.HttpRespondJson(w, http.StatusOK, state.etcdServer.Cluster().Members())
-}
+func (server *PeerAPIServer) AddSelfPeer(ctx context.Context, req *pb.AddSelfPeerRequest) (*pb.AddSelfPeerResponse, error) {
+	if len(req.AdvertisedUrls) == 0 {
+		return nil, MissingAdvertiseUrlError
+	}
 
-func (state PeerAPIState) addPeerHandler(w http.ResponseWriter, r *http.Request) {
-	addPeerReq, err := utils.DeserializeRequestBody[AddPeerRequest](w, r)
+	cert, err := utils.ExtractPeerCertificate(ctx)
 	if err != nil {
-		return
+		return nil, utils.AuthFailure
 	}
 
-	if len(addPeerReq.AdvertisedURLS) == 0 {
-		http.Error(w, "At least one advertised URL must be set", http.StatusBadRequest)
-		return
-	}
-
-	peerName := r.TLS.PeerCertificates[0].Subject.CommonName
+	peerName := cert.Subject.CommonName
 	now := time.Now()
 
-	_, err = state.etcdServer.AddMember(
-		r.Context(),
-		*membership.NewMember(peerName, addPeerReq.AdvertisedURLS, "", &now),
+	urls := make([]url.URL, len(req.AdvertisedUrls))
+	for i, a := range req.AdvertisedUrls {
+		u, err := url.Parse(a)
+		if err != nil {
+			return nil, InvalidAdvertiseUrlError
+		}
+		urls[i] = *u
+	}
+
+	_, err = server.EtcdServer.AddMember(
+		ctx,
+		*membership.NewMember(peerName, urls, "", &now),
 	)
 	if err != nil {
 		log.Printf("Error: Failed to add peer: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return nil, utils.ServerError
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	return &pb.AddSelfPeerResponse{}, nil
 }
 
-func StartPeerAPIHTTPServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
-	apiState := PeerAPIState{
-		state:      state,
-		etcdServer: etcdServer,
+func (server *PeerAPIServer) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.AddAgentResponse, error) {
+	nodeKey := fmt.Appendf(nil, "%v/%v/%v", utils.NodesNamespace, req.Datacenter, req.Name)
+
+	node := schemas.NodeSchema{
+		Name:       *req.Name,
+		Datacenter: *req.Datacenter,
+		Location:   *req.Location,
 	}
 
-	handler := http.NewServeMux()
-	// Peer endpoints
-	handler.HandleFunc("GET /peers", apiState.listPeerHandler)
-	handler.HandleFunc("POST /peers/add", apiState.addPeerHandler)
-	// Node endpoints
-	handler.HandleFunc("POST /node", apiState.addNodeHandler)
-
-	caCertPool := x509.NewCertPool()
-	caCertPool.AddCert(state.CA.Leaf)
-
-	server := &http.Server{
-		Addr:    config.PeerAPIListenHost(),
-		Handler: handler,
-		TLSConfig: &tls.Config{
-			ClientCAs:  caCertPool,
-			ClientAuth: tls.RequireAndVerifyClientCert,
-		},
+	serializedNode, err := json.Marshal(node)
+	if err != nil {
+		log.Print(err.Error())
+		return nil, utils.ServerError
 	}
 
-	go func() {
-		log.Printf("Starting Peer API HTTP Server at %v", server.Addr)
-		log.Fatal(server.ListenAndServeTLS(state.ServerCrtFile, state.ServerKeyFile))
-	}()
-}
-
-func createHTTPClient(state state.State) *http.Client {
-	caCertPool := x509.NewCertPool()
-	caCertPool.AddCert(state.CA.Leaf)
-
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				ServerName:   "registry.cluster.internal",
-				RootCAs:      caCertPool,
-				Certificates: []tls.Certificate{state.ServerKeyPair},
+	res, err := server.EtcdServer.Txn(ctx, &etcdserverpb.TxnRequest{
+		Compare: []*etcdserverpb.Compare{{
+			Result: etcdserverpb.Compare_EQUAL,
+			Target: etcdserverpb.Compare_CREATE,
+			Key:    nodeKey,
+			TargetUnion: &etcdserverpb.Compare_CreateRevision{
+				CreateRevision: int64(0),
 			},
-		},
-	}
-}
-
-func ClusterRequestAddPeer(clusterUrl url.URL, config config.Config, state state.State) error {
-	client := createHTTPClient(state)
-
-	url := clusterUrl
-	url.Path = "/peers/add"
-
-	body, err := json.Marshal(AddPeerRequest{
-		AdvertisedURLS: config.EtcdAdvertiseURLs(),
+		}},
+		Success: []*etcdserverpb.RequestOp{{
+			Request: &etcdserverpb.RequestOp_RequestPut{
+				RequestPut: &etcdserverpb.PutRequest{
+					Key:   nodeKey,
+					Value: serializedNode,
+				},
+			},
+		}},
 	})
 	if err != nil {
-		return err
+		log.Print(err.Error())
+		return nil, utils.ServerError
 	}
 
-	resp, err := client.Post(url.String(), utils.ContentTypeJSON, bytes.NewReader(body))
-	if err != nil {
-		return err
+	if !res.Succeeded {
+		return nil, AgentAlreadyExistsError
 	}
 
-	if resp.StatusCode != http.StatusCreated {
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		bodyString := string(bodyBytes)
+	crt, key := utils.CreateAgentCrt(
+		server.State,
+		*req.Datacenter,
+		*req.Name,
+	)
 
-		return fmt.Errorf("Add peer request failed (status code %v): %v", resp.StatusCode, bodyString)
-	}
-
-	return nil
+	return &pb.AddAgentResponse{
+		Certificate: crt,
+		Key:         key,
+	}, nil
 }
 
-func ClusterRequestGetPeers(clusterUrl url.URL, config config.Config, state state.State) ([]membership.Member, error) {
-	client := createHTTPClient(state)
+func NewPeerApiClient(clusterUrl string, state *state.State) pb.PeerAPIClient {
+	caCertPool := x509.NewCertPool()
+	caCertPool.AddCert(state.CA.Leaf)
 
-	url := clusterUrl
-	url.Path = "/peers"
+	transportCred := credentials.NewTLS(&tls.Config{
+		ServerName:   "registry.cluster.internal",
+		RootCAs:      caCertPool,
+		Certificates: []tls.Certificate{state.ServerKeyPair},
+	})
 
-	resp, err := client.Get(url.String())
+	conn, err := grpc.NewClient(clusterUrl, grpc.WithTransportCredentials(transportCred))
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to create grpc client: %v", err)
+	}
+	return pb.NewPeerAPIClient(conn)
+}
+
+func StartApiServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
+	peerApiServer := PeerAPIServer{State: state, EtcdServer: etcdServer}
+
+	cert, err := tls.LoadX509KeyPair(state.ServerCrtFile, state.ServerKeyFile)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, err := io.ReadAll(resp.Body)
+	listenAddr := config.PeerAPIListenHost()
+	lis, err := net.Listen("tcp", listenAddr)
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AddCert(state.CA.Leaf)
+
+	transportCred := credentials.NewTLS(&tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    caCertPool,
+	})
+
+	grpcServer := grpc.NewServer(grpc.Creds(transportCred))
+	pb.RegisterPeerAPIServer(grpcServer, &peerApiServer)
+
+	go func() {
+		err = grpcServer.Serve(lis)
 		if err != nil {
-			return nil, err
+			log.Fatalf("Failed to start peer API: %v", err)
 		}
-		bodyString := string(bodyBytes)
+	}()
 
-		return nil, fmt.Errorf("Get peers request failed (status code %v): %v", resp.StatusCode, bodyString)
-	}
-
-	var members []membership.Member
-	err = json.NewDecoder(resp.Body).Decode(&members)
-	if err != nil {
-		return nil, err
-	}
-
-	return members, nil
+	log.Printf("Started peer api at https://%v", listenAddr)
 }

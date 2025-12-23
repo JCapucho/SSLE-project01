@@ -37,9 +37,9 @@ func (server *AgentAPIServer) Config(ctx context.Context, req *pb.ConfigRequest)
 
 	// If the certificate should already be renewed, do it
 	if renewAt < 0 {
-		log.Printf("Renewing certificate for %v/%v", node.Datacenter.String(), node.Name.String())
+		log.Printf("Renewing certificate for %v/%v", node.Datacenter, node.Name)
 
-		cert, key := utils.CreateAgentCrt(server.State, node.Datacenter.String(), node.Name.String())
+		cert, key := utils.CreateAgentCrt(server.State, node.Datacenter, node.Name)
 
 		res.Certificate = cert
 		res.Key = key

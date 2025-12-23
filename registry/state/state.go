@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"ssle/registry/config"
-	"ssle/schemas"
+	"ssle/registry/schemas"
 )
 
 type State struct {

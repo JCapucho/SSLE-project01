@@ -13,16 +13,16 @@ import (
 
 	"github.com/caarlos0/env/v11"
 
-	"ssle/schemas"
+	"ssle/registry/schemas"
 )
 
 type Config struct {
 	Name string `env:"NAME,required"`
 	Dir  string `env:"DIR" envDefault:"state"`
 
-	InitialToken     string   `env:"TOKEN"`
-	InitialTokenFile string   `env:"TOKEN_FILE"`
-	JoinUrl          *url.URL `env:"JOIN_URL"`
+	InitialToken     string `env:"TOKEN"`
+	InitialTokenFile string `env:"TOKEN_FILE"`
+	JoinUrl          string `env:"JOIN_URL"`
 
 	PeerListenAddr        netip.Addr       `env:"PEER_LISTEN_ADDR" envDefault:"0.0.0.0"`
 	PeerAdvertiseHostname schemas.Hostname `env:"PEER_ADVERTISE_HOSTNAME"`
@@ -199,18 +199,21 @@ func LoadConfig() Config {
 		config.InitialToken = strings.TrimSpace(string(token))
 	}
 
-	if config.JoinUrl != nil && config.InitialToken == "" {
+	if config.JoinUrl != "" && config.InitialToken == "" {
 		log.Fatal("Token or token file must be set when joining an existing cluster")
 	}
 
 	if !config.PeerAdvertiseHostname.IsValid() {
 		host := ""
-		if config.JoinUrl != nil {
-			host = config.JoinUrl.Hostname()
+		if config.JoinUrl != "" {
+			host, _, err = net.SplitHostPort(config.JoinUrl)
+			if err != nil {
+				log.Fatalf("Invalid join url: %v", err)
+			}
 		}
 
 		config.PeerAdvertiseHostname = schemas.HostnameFromAddr(findBestAddr(host))
-		log.Printf("Peer advertise host: %v", config.PeerAdvertiseHostname)
+		log.Printf("Etcd advertise addr: %v", config.EtcdAdvertiseHost())
 	}
 
 	if !config.AgentAPIAdvertiseHostname.IsValid() {
@@ -219,10 +222,12 @@ func LoadConfig() Config {
 
 	if config.EtcdClientListenPort == 0 {
 		config.EtcdClientListenPort = config.EtcdListenPort + 1
+		log.Printf("Etcd client advertise addr: %v", config.EtcdClientAdvertiseHost())
 	}
 
 	if config.PeerAPIListenPort == 0 {
 		config.PeerAPIListenPort = config.EtcdClientListenPort + 1
+		log.Printf("Peer api advertise host: %v", config.PeerAPIAdvertiseHost())
 	}
 
 	if config.AgentAPIListenPort == 0 {

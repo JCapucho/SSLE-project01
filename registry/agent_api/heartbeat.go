@@ -14,7 +14,7 @@ func (server *AgentAPIServer) Heartbeat(ctx context.Context, req *pb.HeartbeatRe
 	}
 
 	// Retrieve the node lease to renew it
-	utils.GetNodeLease(ctx, server.EtcdServer, node.Datacenter.String(), node.Name.String())
+	utils.GetNodeLease(ctx, server.EtcdServer, node.Datacenter, node.Name)
 
 	return &pb.HeartbeatResponse{}, nil
 }
