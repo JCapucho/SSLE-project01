@@ -29,16 +29,18 @@ type State struct {
 	Token   []byte
 	EtcdDir string
 
-	CA        tls.Certificate
-	CACrtFile string
+	CA             tls.Certificate
+	CACrtFile      string
+	AgentCA        tls.Certificate
+	AgentCACrtFile string
 
 	ServerKeyPair tls.Certificate
 	ServerCrtFile string
 	ServerKeyFile string
 }
 
-func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
-	keyRandom, err := hkdf.Expand(sha256.New, token, "CA", ed25519.SeedSize)
+func createCA(token []byte, start time.Time, implicit string, ou string) ([]byte, []byte) {
+	keyRandom, err := hkdf.Expand(sha256.New, token, implicit, ed25519.SeedSize)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -51,7 +53,8 @@ func createRootCA(token []byte, start time.Time) ([]byte, []byte) {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			Organization: []string{"SSLE Project 01"},
+			Organization:       []string{"SSLE Project 01"},
+			OrganizationalUnit: []string{ou},
 		},
 		NotBefore: start,
 		// 10 Years
@@ -192,7 +195,7 @@ func loadStateCA(config config.Config, token []byte, start time.Time) (string, s
 	certFile := filepath.Join(config.Dir, "ca.crt")
 	keyFile := filepath.Join(config.Dir, "ca.key")
 
-	crtBytes, keyBytes := createRootCA(token, start)
+	crtBytes, keyBytes := createCA(token, start, "CA", "Servers")
 	keyPair, err := tls.X509KeyPair(crtBytes, keyBytes)
 	if err != nil {
 		log.Fatalf("Failed to load CA key pair: %v", err)
@@ -206,6 +209,29 @@ func loadStateCA(config config.Config, token []byte, start time.Time) (string, s
 	err = os.WriteFile(keyFile, keyBytes, 0600)
 	if err != nil {
 		log.Fatalf("Error: Failed to write CA key: %v", err)
+	}
+
+	return certFile, keyFile, keyPair
+}
+
+func loadStateAgentCA(config config.Config, token []byte, start time.Time) (string, string, tls.Certificate) {
+	certFile := filepath.Join(config.Dir, "agent-ca.crt")
+	keyFile := filepath.Join(config.Dir, "agent-ca.key")
+
+	crtBytes, keyBytes := createCA(token, start, "Agent-CA", "Agents")
+	keyPair, err := tls.X509KeyPair(crtBytes, keyBytes)
+	if err != nil {
+		log.Fatalf("Failed to load CA key pair: %v", err)
+	}
+
+	err = os.WriteFile(certFile, crtBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write agent CA certificate: %v", err)
+	}
+
+	err = os.WriteFile(keyFile, keyBytes, 0600)
+	if err != nil {
+		log.Fatalf("Error: Failed to write agent CA key: %v", err)
 	}
 
 	return certFile, keyFile, keyPair
@@ -243,14 +269,17 @@ func LoadState(config config.Config) State {
 
 	token, start := loadStateToken(config)
 	caCrtFile, _, CA := loadStateCA(config, token, start)
+	agentCaCrtFile, _, AgentCA := loadStateAgentCA(config, token, start)
 	serverCrtFile, serverKeyFile, serverKeyPair := loadStateNodeCrt(config, CA)
 
 	return State{
 		Token:   token,
 		EtcdDir: filepath.Join(config.Dir, "etcd"),
 
-		CA:        CA,
-		CACrtFile: caCrtFile,
+		CA:             CA,
+		CACrtFile:      caCrtFile,
+		AgentCA:        AgentCA,
+		AgentCACrtFile: agentCaCrtFile,
 
 		ServerKeyPair: serverKeyPair,
 		ServerCrtFile: serverCrtFile,

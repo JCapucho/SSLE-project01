@@ -36,7 +36,7 @@ func StartApiServer(config *config.Config, state *state.State, etcdServer *etcds
 	}
 
 	caCertPool := x509.NewCertPool()
-	caCertPool.AddCert(state.CA.Leaf)
+	caCertPool.AddCert(state.AgentCA.Leaf)
 
 	transportCred := credentials.NewTLS(&tls.Config{
 		Certificates: []tls.Certificate{cert},

@@ -284,7 +284,7 @@ func CreateAgentCrt(state *state.State, datacenter string, node string) ([]byte,
 		BasicConstraintsValid: true,
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, state.CA.Leaf, pub, state.CA.PrivateKey)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, state.AgentCA.Leaf, pub, state.AgentCA.PrivateKey)
 	if err != nil {
 		panic(err.Error())
 	}

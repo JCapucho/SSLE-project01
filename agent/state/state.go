@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	dockerClient "github.com/docker/docker/client"
 	"google.golang.org/grpc"
@@ -118,7 +117,7 @@ type State struct {
 	RegistryClient pb.AgentAPIClient
 	DockerClient   *dockerClient.Client
 
-	addrs             atomic.Pointer[[]string]
+	resolver          *registryResolverBuilder
 	addrsFile         string
 	certFile, keyFile string
 }
@@ -136,15 +135,15 @@ func LoadState(config *config.Config) *State {
 
 	certFile, keyFile, creds := loadAgentCrt(config)
 	addrsFile, addrs := loadRegistryAddresses(config)
+	resolver := &registryResolverBuilder{addrs: addrs}
 
 	state := &State{
 		credentials: &creds,
 		addrsFile:   addrsFile,
 		certFile:    certFile,
 		keyFile:     keyFile,
+		resolver:    resolver,
 	}
-
-	state.addrs.Store(&addrs)
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(CAPem)
@@ -155,7 +154,6 @@ func LoadState(config *config.Config) *State {
 		RootCAs:              caCertPool,
 	})
 
-	resolver := &registryResolverBuilder{addrs: &state.addrs}
 	url := fmt.Sprintf("%v:///", registryResolverScheme)
 	conn, err := grpc.NewClient(url, grpc.WithTransportCredentials(transportCred), grpc.WithResolvers(resolver))
 	if err != nil {
@@ -201,7 +199,7 @@ func (state *State) clientCertificateForTLS(req *tls.CertificateRequestInfo) (*t
 }
 
 func (state *State) UpdateAddrs(addrs []string) {
-	state.addrs.Store(&addrs)
+	state.resolver.Update(addrs)
 
 	err := writeRegistryAddresses(state.addrsFile, addrs)
 	if err != nil {
@@ -210,33 +208,38 @@ func (state *State) UpdateAddrs(addrs []string) {
 }
 
 type registryResolverBuilder struct {
-	addrs *atomic.Pointer[[]string]
+	addrs    []string
+	resolver *registryResolver
 }
 
+func (builder *registryResolverBuilder) Update(addrs []string) {
+	builder.addrs = addrs
+	builder.resolver.reload(builder.addrs)
+}
 func (builder *registryResolverBuilder) Build(target resolver.Target, cc resolver.ClientConn, _ resolver.BuildOptions) (resolver.Resolver, error) {
-	r := &registryResolver{
+	builder.resolver = &registryResolver{
 		target: target,
 		cc:     cc,
-		addrs:  builder.addrs,
 	}
-	r.start()
-	return r, nil
+	builder.resolver.reload(builder.addrs)
+	return builder.resolver, nil
 }
 func (*registryResolverBuilder) Scheme() string { return registryResolverScheme }
 
 type registryResolver struct {
 	target resolver.Target
 	cc     resolver.ClientConn
-	addrs  *atomic.Pointer[[]string]
 }
 
-func (r *registryResolver) start() {
-	rawAddrs := r.addrs.Load()
-	addrs := make([]resolver.Address, len(*rawAddrs))
-	for i, s := range *rawAddrs {
+func (r *registryResolver) reload(rawAddrs []string) {
+	addrs := make([]resolver.Address, len(rawAddrs))
+	for i, s := range rawAddrs {
 		addrs[i] = resolver.Address{Addr: s}
 	}
-	r.cc.UpdateState(resolver.State{Addresses: addrs})
+	r.cc.UpdateState(resolver.State{
+		Addresses: addrs,
+		Endpoints: []resolver.Endpoint{{Addresses: addrs}},
+	})
 }
 func (*registryResolver) ResolveNow(resolver.ResolveNowOptions) {}
 func (*registryResolver) Close()                                {}
