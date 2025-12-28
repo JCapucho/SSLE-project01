@@ -12,6 +12,9 @@ import (
 	"sync"
 
 	dockerClient "github.com/docker/docker/client"
+	"github.com/sigstore/sigstore-go/pkg/root"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/verify"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/resolver"
@@ -117,13 +120,41 @@ type State struct {
 	RegistryClient pb.AgentAPIClient
 	DockerClient   *dockerClient.Client
 
+	SignatureVerifier *verify.Verifier
+	SignatureIdentity *verify.CertificateIdentity
+
 	resolver          *registryResolverBuilder
 	addrsFile         string
 	certFile, keyFile string
 }
 
 func LoadState(config *config.Config) *State {
-	err := os.Mkdir(config.Dir, 0700)
+	opts := tuf.DefaultOptions()
+	client, err := tuf.New(opts)
+	if err != nil {
+		panic(err)
+	}
+
+	trustedMaterial, err := root.GetTrustedRoot(client)
+	if err != nil {
+		panic(err)
+	}
+
+	verifier, err := verify.NewVerifier(
+		trustedMaterial,
+		verify.WithTransparencyLog(1),
+		verify.WithIntegratedTimestamps(1),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	certID, err := verify.NewShortCertificateIdentity(config.SigningIssuer, "", "", config.SigningSAN)
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.Mkdir(config.Dir, 0700)
 	if err != nil && !os.IsExist(err) {
 		log.Fatalf("Failed to create state dir: %v", err)
 	}
@@ -143,6 +174,9 @@ func LoadState(config *config.Config) *State {
 		certFile:    certFile,
 		keyFile:     keyFile,
 		resolver:    resolver,
+
+		SignatureVerifier: verifier,
+		SignatureIdentity: &certID,
 	}
 
 	caCertPool := x509.NewCertPool()

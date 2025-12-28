@@ -29,6 +29,7 @@
               pkgs.etcd
               pkgs.gopls
 
+	      pkgs.cosign
               pkgs.protobuf
             ];
           };

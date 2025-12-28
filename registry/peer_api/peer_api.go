@@ -90,7 +90,7 @@ func (server *PeerAPIServer) AddSelfPeer(ctx context.Context, req *pb.AddSelfPee
 }
 
 func (server *PeerAPIServer) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.AddAgentResponse, error) {
-	nodeKey := fmt.Appendf(nil, "%v/%v/%v", utils.NodesNamespace, req.Datacenter, req.Name)
+	nodeKey := fmt.Appendf(nil, "%s/%s/%s", utils.NodesNamespace, *req.Datacenter, *req.Name)
 
 	node := schemas.NodeSchema{
 		Name:       *req.Name,

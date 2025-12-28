@@ -17,6 +17,9 @@ type Config struct {
 
 	DNSBindAddr string `env:"DNS_BIND_ADDR" envDefault:"127.0.0.143"`
 	DNSUpstream string `env:"DNS_UPSTREAM" envDefault:"127.0.0.53:53"`
+
+	SigningIssuer string `env:"SIGNING_ISSUER" envDefault:"https://github.com/login/oauth"`
+	SigningSAN    string `env:"SIGNING_SAN" envDefault:"^capucho@jcapucho\\.com$"`
 }
 
 func LoadConfig() Config {

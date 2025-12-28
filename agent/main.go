@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 
 	"ssle/agent/config"
 	"ssle/agent/state"
@@ -25,16 +26,39 @@ func HandleEvent(
 	state *state.State,
 	evt events.Message,
 ) {
-	if evt.Type != events.ContainerEventType {
+	switch evt.Type {
+	case events.ContainerEventType:
+		handleEventContainer(state, evt)
+	case events.ImageEventType:
+		handleEventImage(state, evt)
+	}
+}
+
+func handleEventContainer(
+	state *state.State,
+	evt events.Message,
+) {
+	if evt.Actor.Attributes["manager"] != "ssle" {
 		return
 	}
 
 	switch evt.Action {
 	case events.ActionCreate, events.ActionStart:
-		registerService(
-			state,
-			evt.Actor.ID,
-		)
+		ctr, err := state.DockerClient.ContainerInspect(context.Background(), evt.Actor.ID)
+		if err != nil {
+			log.Printf("Error while retrieving container: %v\n", err)
+			return
+		}
+
+		if checkImage(ctr.Image, state) {
+			registerServiceFromContainer(state, &ctr)
+		} else {
+			err := state.DockerClient.ContainerRemove(context.Background(), evt.Actor.ID, container.RemoveOptions{Force: true})
+			if err != nil {
+				log.Printf("Failed to stop unsigned container: %v", err)
+			}
+			removeUnsignedImage(ctr.Image, state)
+		}
 	case events.ActionRemove, events.ActionStop, events.ActionDie:
 		name, found := evt.Actor.Attributes["name"]
 		if !found {
@@ -59,6 +83,52 @@ func HandleEvent(
 	}
 }
 
+func handleEventImage(
+	state *state.State,
+	evt events.Message,
+) {
+	switch evt.Action {
+	case events.ActionPull:
+		if !checkImage(evt.Actor.ID, state) {
+			removeUnsignedImage(evt.Actor.ID, state)
+		}
+	}
+}
+
+func checkImage(imageId string, state *state.State) bool {
+	img, err := state.DockerClient.ImageInspect(context.Background(), imageId)
+	if err != nil {
+		log.Printf("Failed to inspect image: %v", err)
+		return false
+	}
+
+	res, err := VerifyImageSignature(&img, state)
+	if err != nil {
+		log.Printf("Failed to verify image: %v", err)
+		return false
+	}
+
+	log.Printf(
+		"Image %s signed by %s",
+		imageId,
+		res.Signature.Certificate.SubjectAlternativeName,
+	)
+
+	return true
+}
+
+func removeUnsignedImage(imageId string, state *state.State) {
+	log.Print("Removing unsigned image")
+
+	_, err := state.DockerClient.ImageRemove(context.Background(), imageId, image.RemoveOptions{
+		Force: true,
+	})
+	if err != nil {
+		log.Printf("Failed to remove image: %v", err)
+	}
+
+}
+
 func registerService(
 	state *state.State,
 	containerId string,
@@ -69,6 +139,13 @@ func registerService(
 		return
 	}
 
+	registerServiceFromContainer(state, &ctr)
+}
+
+func registerServiceFromContainer(
+	state *state.State,
+	ctr *container.InspectResponse,
+) {
 	svc, found := ctr.Config.Labels["ssle.service"]
 	if !found {
 		log.Println("Container does not have service label")
@@ -114,7 +191,7 @@ func registerService(
 		MetricsPort: &metricsPort,
 	}
 
-	_, err = state.RegistryClient.Register(context.Background(), req)
+	_, err := state.RegistryClient.Register(context.Background(), req)
 	if err != nil {
 		log.Printf("Error registering service: %v", err)
 		return
@@ -181,6 +258,27 @@ func HeartbeatBackgroundJob(state *state.State, period time.Duration) {
 	}
 }
 
+func StartupConsistencyJob(state *state.State) {
+	args := filters.NewArgs(filters.Arg("label", "manager=ssle"))
+
+	containers, err := state.DockerClient.ContainerList(context.Background(), container.ListOptions{Filters: args})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, ctr := range containers {
+		if checkImage(ctr.ImageID, state) {
+			registerService(state, ctr.ID)
+		} else {
+			err := state.DockerClient.ContainerRemove(context.Background(), ctr.ID, container.RemoveOptions{Force: true})
+			if err != nil {
+				log.Printf("Failed to stop unsigned container: %v", err)
+			}
+			removeUnsignedImage(ctr.ImageID, state)
+		}
+	}
+}
+
 func main() {
 	config := config.LoadConfig()
 	state := state.LoadState(&config)
@@ -208,9 +306,7 @@ func main() {
 	go ConfigBackgroundJob(state)
 	go HeartbeatBackgroundJob(state, time.Duration(*registryConfig.HeartbeatPeriod))
 
-	args := filters.NewArgs(filters.Arg("label", "manager=ssle"))
-
-	evtChan, errChan := state.DockerClient.Events(context.Background(), events.ListOptions{Filters: args})
+	evtChan, errChan := state.DockerClient.Events(context.Background(), events.ListOptions{})
 
 	go func() {
 		for {
@@ -223,14 +319,7 @@ func main() {
 		}
 	}()
 
-	containers, err := state.DockerClient.ContainerList(context.Background(), container.ListOptions{Filters: args})
-	if err != nil {
-		panic(err)
-	}
-
-	for _, ctr := range containers {
-		registerService(state, ctr.ID)
-	}
+	go StartupConsistencyJob(state)
 
 	mux := dns.NewServeMux()
 	mux.Handle("cluster.internal.", &ClusterDnsHandler{

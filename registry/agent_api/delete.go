@@ -22,7 +22,7 @@ func (server *AgentAPIServer) Deregister(ctx context.Context, req *pb.Deregister
 
 	svcKey := fmt.Appendf(
 		nil,
-		"%v/%v/%v/%v/%v/%v",
+		"%s/%s/%s/%s/%s/%s",
 		utils.ServiceNamespace,
 		*req.Service,
 		node.Location,
@@ -32,7 +32,7 @@ func (server *AgentAPIServer) Deregister(ctx context.Context, req *pb.Deregister
 	)
 	dsSvcKey := fmt.Appendf(
 		nil,
-		"%v/%v/%v/%v/%v",
+		"%s/%s/%s/%s/%s",
 		utils.DCServicesNamespace,
 		node.Datacenter,
 		node.Name,
@@ -79,7 +79,7 @@ func (server *AgentAPIServer) Reset(ctx context.Context, req *pb.ResetRequest) (
 		return nil, err
 	}
 
-	key := fmt.Appendf(nil, "%v/%v/%v", utils.NodesLeasesNamespace, node.Datacenter, node.Name)
+	key := fmt.Appendf(nil, "%s/%s/%s", utils.NodesLeasesNamespace, node.Datacenter, node.Name)
 
 	// Get lease number
 	res, err := server.EtcdServer.Range(ctx, &etcdserverpb.RangeRequest{Key: key})
