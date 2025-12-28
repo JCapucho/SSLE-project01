@@ -22,6 +22,12 @@ import (
 	pb "ssle/services"
 )
 
+type UnsignedImageEvent struct {
+	Message string `json:"msg"`
+	Image   string `json:"image"`
+	Reason  string `json:"reason"`
+}
+
 func HandleEvent(
 	state *state.State,
 	evt events.Message,
@@ -105,6 +111,18 @@ func checkImage(imageId string, state *state.State) bool {
 	res, err := VerifyImageSignature(&img, state)
 	if err != nil {
 		log.Printf("Failed to verify image: %v", err)
+
+		image := imageId
+		if len(img.RepoTags) > 0 {
+			image = img.RepoTags[0]
+		}
+
+		state.WriteEvent(UnsignedImageEvent{
+			Message: "Unsigned image detected",
+			Image:   image,
+			Reason:  err.Error(),
+		})
+
 		return false
 	}
 

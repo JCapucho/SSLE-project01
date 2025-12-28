@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -126,6 +127,8 @@ type State struct {
 	resolver          *registryResolverBuilder
 	addrsFile         string
 	certFile, keyFile string
+
+	eventsFile *os.File
 }
 
 func LoadState(config *config.Config) *State {
@@ -164,6 +167,11 @@ func LoadState(config *config.Config) *State {
 		log.Fatalf("Failed to read CA certificate: %v", err)
 	}
 
+	eventsFile, err := os.Create(config.EventsLog)
+	if err != nil {
+		log.Fatalf("Failed to open events log: %v", err)
+	}
+
 	certFile, keyFile, creds := loadAgentCrt(config)
 	addrsFile, addrs := loadRegistryAddresses(config)
 	resolver := &registryResolverBuilder{addrs: addrs}
@@ -177,6 +185,8 @@ func LoadState(config *config.Config) *State {
 
 		SignatureVerifier: verifier,
 		SignatureIdentity: &certID,
+
+		eventsFile: eventsFile,
 	}
 
 	caCertPool := x509.NewCertPool()
@@ -202,6 +212,16 @@ func LoadState(config *config.Config) *State {
 	state.DockerClient = dcli
 
 	return state
+}
+
+func (state *State) WriteEvent(event any) {
+	msg, err := json.Marshal(event)
+	if err != nil {
+		log.Printf("Failed to encode event: %v", err)
+		return
+	}
+	msg = fmt.Appendf(msg, "\n")
+	state.eventsFile.Write(msg)
 }
 
 func (state *State) UpdateCredentials(crtBytes []byte, keyBytes []byte) error {

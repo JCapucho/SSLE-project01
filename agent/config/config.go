@@ -20,6 +20,8 @@ type Config struct {
 
 	SigningIssuer string `env:"SIGNING_ISSUER" envDefault:"https://github.com/login/oauth"`
 	SigningSAN    string `env:"SIGNING_SAN" envDefault:"^capucho@jcapucho\\.com$"`
+
+	EventsLog string `env:"EVENTS_LOG" envDefault:"events.log"`
 }
 
 func LoadConfig() Config {

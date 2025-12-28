@@ -27,7 +27,7 @@ func (server *AgentAPIServer) Config(ctx context.Context, req *pb.ConfigRequest)
 	renewPeriod := utils.AgentCertificateExpiry / 2
 	// Calculate the time until a renew
 	now := time.Now()
-	renewAt := renewPeriod - cert.NotAfter.Sub(now)
+	renewAt := cert.NotAfter.Sub(now) - renewPeriod
 
 	heartbeatPeriod := utils.NodeKeepaliveTTL / 2
 
