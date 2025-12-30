@@ -2,20 +2,22 @@ FROM golang:1.25 as build
 
 WORKDIR /go/src/app
 
-COPY registry/go.mod registry/go.sum /go/src/app
+COPY prom-sd-observer/go.mod prom-sd-observer/go.sum /go/src/app
 COPY services/go.mod services/go.sum /go/src/services
+COPY node-utils/go.mod node-utils/go.sum /go/src/node-utils
 
 RUN go mod download
 
-COPY registry /go/src/app
+COPY prom-sd-observer /go/src/app
 COPY services /go/src/services
+COPY node-utils /go/src/node-utils
 
 RUN go vet -v
 RUN go test -v
 
 RUN CGO_ENABLED=0 go build -o /go/bin/app
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:latest
 
 COPY --from=build /go/bin/app /
 CMD ["/app"]

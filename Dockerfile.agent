@@ -3,12 +3,14 @@ FROM golang:1.25 as build
 WORKDIR /go/src/app
 
 COPY agent/go.mod agent/go.sum /go/src/app
-COPY schema/go.mod schema/go.sum /go/src/schema
+COPY services/go.mod services/go.sum /go/src/services
+COPY node-utils/go.mod node-utils/go.sum /go/src/node-utils
 
 RUN go mod download
 
 COPY agent /go/src/app
-COPY schema /go/src/schema
+COPY services /go/src/services
+COPY node-utils /go/src/node-utils
 
 RUN go vet -v
 RUN go test -v
