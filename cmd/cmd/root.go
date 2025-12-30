@@ -37,8 +37,8 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&CAFile, "ca", "ca.crt", "Path to the certificate authority file")
-	rootCmd.PersistentFlags().StringVar(&CrtFile, "crt", "node.crt", "Path to a peer certificate file")
-	rootCmd.PersistentFlags().StringVar(&KeyFile, "key", "node.key", "Path to a peer key file")
+	rootCmd.PersistentFlags().StringVar(&CrtFile, "crt", "peer.crt", "Path to a peer certificate file")
+	rootCmd.PersistentFlags().StringVar(&KeyFile, "key", "peer.key", "Path to a peer key file")
 	rootCmd.PersistentFlags().StringVar(&ClusterAddress, "cluster", "127.0.0.1:2382", "Address of the cluster peer api")
 }
 

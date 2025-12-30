@@ -71,7 +71,7 @@ func handleEventContainer(
 			return
 		}
 
-		_, err := state.RegistryClient.Deregister(context.Background(), &pb.DeregisterServiceRequest{
+		_, err := state.AgentClient.Deregister(context.Background(), &pb.DeregisterServiceRequest{
 			Service:  &service,
 			Instance: &name,
 		})
@@ -210,7 +210,7 @@ func registerServiceFromContainer(
 		MetricsPort: &metricsPort,
 	}
 
-	_, err := state.RegistryClient.Register(context.Background(), req)
+	_, err := state.AgentClient.Register(context.Background(), req)
 	if err != nil {
 		log.Printf("Error registering service: %v", err)
 		return
@@ -225,56 +225,12 @@ func cleanup(state *state.State) {
 
 	log.Println("Cleaning up")
 
-	_, err := state.RegistryClient.Reset(context.Background(), &pb.ResetRequest{})
+	_, err := state.AgentClient.Reset(context.Background(), &pb.ResetRequest{})
 	if err != nil {
 		log.Printf("Error cleaning up: %v", err)
 	}
 
 	os.Exit(0)
-}
-
-func GetRegistryConfig(state *state.State) (*pb.ConfigResponse, error) {
-	res, err := state.RegistryClient.Config(context.Background(), &pb.ConfigRequest{})
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Certificate != nil && res.Key != nil {
-		err = state.UpdateCredentials(res.Certificate, res.Key)
-		if err != nil {
-			log.Printf("Failed to update agent credentials: %v", err)
-		}
-	}
-
-	state.UpdateAddrs(res.RegistryAddrs)
-
-	return res, nil
-}
-
-func ConfigBackgroundJob(state *state.State) {
-	for {
-		_, err := GetRegistryConfig(state)
-		if err != nil {
-			log.Printf("Failed to refresh agent config: %v", err)
-			continue
-		}
-
-		// Refresh config every minute
-		time.Sleep(time.Minute)
-	}
-}
-
-func HeartbeatBackgroundJob(state *state.State, period time.Duration) {
-	for {
-		_, err := state.RegistryClient.Heartbeat(context.Background(), &pb.HeartbeatRequest{})
-		if err != nil {
-			log.Printf("Failed to send heartbeat: %v", err)
-			continue
-		}
-
-		// Refresh config every minute
-		time.Sleep(period * time.Second)
-	}
 }
 
 func StartupConsistencyJob(state *state.State) {
@@ -308,7 +264,7 @@ func main() {
 	config := config.LoadConfig()
 	state := state.LoadState(&config)
 
-	_, err := state.RegistryClient.Reset(context.Background(), &pb.ResetRequest{})
+	_, err := state.AgentClient.Reset(context.Background(), &pb.ResetRequest{})
 	if err != nil {
 		log.Printf("Error resetting node: %v", err)
 		return
@@ -322,14 +278,14 @@ func main() {
 	}()
 	defer cleanup(state)
 
-	registryConfig, err := GetRegistryConfig(state)
+	registryConfig, err := state.GetRegistryConfig()
 	if err != nil {
 		log.Fatalf("Failed to load registry config: %v", err)
 	}
 
 	// Start config background job
-	go ConfigBackgroundJob(state)
-	go HeartbeatBackgroundJob(state, time.Duration(*registryConfig.HeartbeatPeriod))
+	go state.ConfigBackgroundJob()
+	go state.HeartbeatBackgroundJob(time.Duration(*registryConfig.HeartbeatPeriod))
 
 	evtChan, errChan := state.DockerClient.Events(context.Background(), events.ListOptions{})
 

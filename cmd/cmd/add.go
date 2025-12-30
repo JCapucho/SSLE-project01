@@ -13,46 +13,58 @@ func init() {
 	var (
 		location   string
 		datacenter string
-		agentCrt   string
-		agentKey   string
+		nodeCrt    string
+		nodeKey    string
+
+		isObserver bool
 	)
 
 	// addCmd represents the add command
 	var addCmd = &cobra.Command{
 		Use:   "add",
-		Short: "Add an agent to the SSLE registry",
+		Short: "Add an node to the SSLE registry",
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			var node_type services.NodeType
+			if isObserver {
+				node_type = services.NodeType_OBSERVER
+			} else {
+				node_type = services.NodeType_AGENT
+			}
+
 			peer_api_client := NewPeerApiClient()
-			res, err := peer_api_client.AddAgent(context.Background(), &services.AddAgentRequest{
+			res, err := peer_api_client.AddNode(context.Background(), &services.AddNodeRequest{
 				Name:       &args[0],
 				Location:   &location,
 				Datacenter: &datacenter,
+
+				NodeType: &node_type,
 			})
 
 			if err != nil {
-				fmt.Printf("Failed to add agent: %v\n", err)
+				fmt.Printf("Failed to add node: %v\n", err)
 			} else {
-				err = os.WriteFile(agentCrt, res.Certificate, 0600)
+				err = os.WriteFile(nodeCrt, res.Certificate, 0600)
 				if err != nil {
 					panic(err.Error())
 				}
-				err = os.WriteFile(agentKey, res.Key, 0600)
+				err = os.WriteFile(nodeKey, res.Key, 0600)
 				if err != nil {
 					panic(err.Error())
 				}
 
-				println("Agent added successfully")
+				println("Node added successfully")
 			}
 		},
 	}
 
-	agentCmd.AddCommand(addCmd)
+	nodeCmd.AddCommand(addCmd)
 
-	addCmd.Flags().StringVar(&agentCrt, "agent-crt", "agent.crt", "Path to where the agent certificate will be written")
-	addCmd.Flags().StringVar(&agentKey, "agent-key", "agent.key", "Path to where the agent key will be written")
+	addCmd.Flags().BoolVar(&isObserver, "observer", false, "Whether this node is a datacenter observer")
+	addCmd.Flags().StringVar(&nodeCrt, "node-crt", "node.crt", "Path to where the node certificate will be written")
+	addCmd.Flags().StringVar(&nodeKey, "node-key", "node.key", "Path to where the node key will be written")
 
-	addCmd.Flags().StringVar(&location, "location", "", "Datacenter where the agent is located")
+	addCmd.Flags().StringVar(&location, "location", "", "Datacenter where the node is located")
 	addCmd.Flags().StringVar(&datacenter, "datacenter", "", "The datacenter location")
 	if err := addCmd.MarkFlagRequired("location"); err != nil {
 		panic(err)

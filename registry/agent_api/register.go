@@ -50,7 +50,7 @@ func (server *AgentAPIServer) Register(ctx context.Context, req *pb.RegisterServ
 
 	svcKey := fmt.Appendf(
 		nil,
-		"%v/%v/%v/%v/%v/%v",
+		"%s/%s/%s/%s/%s/%s",
 		utils.ServiceNamespace,
 		*spec.ServiceName,
 		node.Location,
@@ -60,7 +60,7 @@ func (server *AgentAPIServer) Register(ctx context.Context, req *pb.RegisterServ
 	)
 	dsSvcKey := fmt.Appendf(
 		nil,
-		"%v/%v/%v/%v/%v",
+		"%s/%s/%s/%s/%s",
 		utils.DCServicesNamespace,
 		node.Datacenter,
 		node.Name,
@@ -94,7 +94,7 @@ func (server *AgentAPIServer) Register(ctx context.Context, req *pb.RegisterServ
 				Request: &etcdserverpb.RequestOp_RequestPut{
 					RequestPut: &etcdserverpb.PutRequest{
 						Key:   dsSvcKey,
-						Value: []byte{},
+						Value: serializedSpec,
 						Lease: nodeLease,
 					},
 				},

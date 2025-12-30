@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PeerAPI_GetPeers_FullMethodName    = "/PeerAPI/GetPeers"
 	PeerAPI_AddSelfPeer_FullMethodName = "/PeerAPI/AddSelfPeer"
-	PeerAPI_AddAgent_FullMethodName    = "/PeerAPI/AddAgent"
+	PeerAPI_AddNode_FullMethodName     = "/PeerAPI/AddNode"
 )
 
 // PeerAPIClient is the client API for PeerAPI service.
@@ -30,7 +30,7 @@ const (
 type PeerAPIClient interface {
 	GetPeers(ctx context.Context, in *GetPeersRequest, opts ...grpc.CallOption) (*GetPeersResponse, error)
 	AddSelfPeer(ctx context.Context, in *AddSelfPeerRequest, opts ...grpc.CallOption) (*AddSelfPeerResponse, error)
-	AddAgent(ctx context.Context, in *AddAgentRequest, opts ...grpc.CallOption) (*AddAgentResponse, error)
+	AddNode(ctx context.Context, in *AddNodeRequest, opts ...grpc.CallOption) (*AddNodeResponse, error)
 }
 
 type peerAPIClient struct {
@@ -61,10 +61,10 @@ func (c *peerAPIClient) AddSelfPeer(ctx context.Context, in *AddSelfPeerRequest,
 	return out, nil
 }
 
-func (c *peerAPIClient) AddAgent(ctx context.Context, in *AddAgentRequest, opts ...grpc.CallOption) (*AddAgentResponse, error) {
+func (c *peerAPIClient) AddNode(ctx context.Context, in *AddNodeRequest, opts ...grpc.CallOption) (*AddNodeResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AddAgentResponse)
-	err := c.cc.Invoke(ctx, PeerAPI_AddAgent_FullMethodName, in, out, cOpts...)
+	out := new(AddNodeResponse)
+	err := c.cc.Invoke(ctx, PeerAPI_AddNode_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (c *peerAPIClient) AddAgent(ctx context.Context, in *AddAgentRequest, opts 
 type PeerAPIServer interface {
 	GetPeers(context.Context, *GetPeersRequest) (*GetPeersResponse, error)
 	AddSelfPeer(context.Context, *AddSelfPeerRequest) (*AddSelfPeerResponse, error)
-	AddAgent(context.Context, *AddAgentRequest) (*AddAgentResponse, error)
+	AddNode(context.Context, *AddNodeRequest) (*AddNodeResponse, error)
 	mustEmbedUnimplementedPeerAPIServer()
 }
 
@@ -94,8 +94,8 @@ func (UnimplementedPeerAPIServer) GetPeers(context.Context, *GetPeersRequest) (*
 func (UnimplementedPeerAPIServer) AddSelfPeer(context.Context, *AddSelfPeerRequest) (*AddSelfPeerResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddSelfPeer not implemented")
 }
-func (UnimplementedPeerAPIServer) AddAgent(context.Context, *AddAgentRequest) (*AddAgentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AddAgent not implemented")
+func (UnimplementedPeerAPIServer) AddNode(context.Context, *AddNodeRequest) (*AddNodeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddNode not implemented")
 }
 func (UnimplementedPeerAPIServer) mustEmbedUnimplementedPeerAPIServer() {}
 func (UnimplementedPeerAPIServer) testEmbeddedByValue()                 {}
@@ -154,20 +154,20 @@ func _PeerAPI_AddSelfPeer_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PeerAPI_AddAgent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddAgentRequest)
+func _PeerAPI_AddNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddNodeRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PeerAPIServer).AddAgent(ctx, in)
+		return srv.(PeerAPIServer).AddNode(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PeerAPI_AddAgent_FullMethodName,
+		FullMethod: PeerAPI_AddNode_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PeerAPIServer).AddAgent(ctx, req.(*AddAgentRequest))
+		return srv.(PeerAPIServer).AddNode(ctx, req.(*AddNodeRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -188,8 +188,8 @@ var PeerAPI_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PeerAPI_AddSelfPeer_Handler,
 		},
 		{
-			MethodName: "AddAgent",
-			Handler:    _PeerAPI_AddAgent_Handler,
+			MethodName: "AddNode",
+			Handler:    _PeerAPI_AddNode_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

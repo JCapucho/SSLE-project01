@@ -181,6 +181,190 @@ func (x *ServiceSpec) GetMetricsPort() uint32 {
 	return 0
 }
 
+type HeartbeatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HeartbeatRequest) Reset() {
+	*x = HeartbeatRequest{}
+	mi := &file_agent_api_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HeartbeatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HeartbeatRequest) ProtoMessage() {}
+
+func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
+func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{2}
+}
+
+type HeartbeatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HeartbeatResponse) Reset() {
+	*x = HeartbeatResponse{}
+	mi := &file_agent_api_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HeartbeatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HeartbeatResponse) ProtoMessage() {}
+
+func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
+func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{3}
+}
+
+type ConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigRequest) Reset() {
+	*x = ConfigRequest{}
+	mi := &file_agent_api_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigRequest) ProtoMessage() {}
+
+func (x *ConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigRequest.ProtoReflect.Descriptor instead.
+func (*ConfigRequest) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{4}
+}
+
+type ConfigResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Certificate     []byte                 `protobuf:"bytes,1,opt,name=certificate" json:"certificate,omitempty"`
+	Key             []byte                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
+	HeartbeatPeriod *uint32                `protobuf:"varint,3,req,name=heartbeat_period,json=heartbeatPeriod" json:"heartbeat_period,omitempty"`
+	RenewPeriod     *uint64                `protobuf:"varint,4,req,name=renew_period,json=renewPeriod" json:"renew_period,omitempty"`
+	RegistryAddrs   []string               `protobuf:"bytes,5,rep,name=registry_addrs,json=registryAddrs" json:"registry_addrs,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ConfigResponse) Reset() {
+	*x = ConfigResponse{}
+	mi := &file_agent_api_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigResponse) ProtoMessage() {}
+
+func (x *ConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigResponse.ProtoReflect.Descriptor instead.
+func (*ConfigResponse) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ConfigResponse) GetCertificate() []byte {
+	if x != nil {
+		return x.Certificate
+	}
+	return nil
+}
+
+func (x *ConfigResponse) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *ConfigResponse) GetHeartbeatPeriod() uint32 {
+	if x != nil && x.HeartbeatPeriod != nil {
+		return *x.HeartbeatPeriod
+	}
+	return 0
+}
+
+func (x *ConfigResponse) GetRenewPeriod() uint64 {
+	if x != nil && x.RenewPeriod != nil {
+		return *x.RenewPeriod
+	}
+	return 0
+}
+
+func (x *ConfigResponse) GetRegistryAddrs() []string {
+	if x != nil {
+		return x.RegistryAddrs
+	}
+	return nil
+}
+
 type DiscoverRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Service       *string                `protobuf:"bytes,1,req,name=service" json:"service,omitempty"`
@@ -194,7 +378,7 @@ type DiscoverRequest struct {
 
 func (x *DiscoverRequest) Reset() {
 	*x = DiscoverRequest{}
-	mi := &file_agent_api_proto_msgTypes[2]
+	mi := &file_agent_api_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +390,7 @@ func (x *DiscoverRequest) String() string {
 func (*DiscoverRequest) ProtoMessage() {}
 
 func (x *DiscoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[2]
+	mi := &file_agent_api_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +403,7 @@ func (x *DiscoverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverRequest.ProtoReflect.Descriptor instead.
 func (*DiscoverRequest) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{2}
+	return file_agent_api_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DiscoverRequest) GetService() string {
@@ -266,7 +450,7 @@ type DiscoverResponse struct {
 
 func (x *DiscoverResponse) Reset() {
 	*x = DiscoverResponse{}
-	mi := &file_agent_api_proto_msgTypes[3]
+	mi := &file_agent_api_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -278,7 +462,7 @@ func (x *DiscoverResponse) String() string {
 func (*DiscoverResponse) ProtoMessage() {}
 
 func (x *DiscoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[3]
+	mi := &file_agent_api_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -291,7 +475,7 @@ func (x *DiscoverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DiscoverResponse.ProtoReflect.Descriptor instead.
 func (*DiscoverResponse) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{3}
+	return file_agent_api_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DiscoverResponse) GetServices() []*ServiceSpec {
@@ -314,7 +498,7 @@ type RegisterServiceRequest struct {
 
 func (x *RegisterServiceRequest) Reset() {
 	*x = RegisterServiceRequest{}
-	mi := &file_agent_api_proto_msgTypes[4]
+	mi := &file_agent_api_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +510,7 @@ func (x *RegisterServiceRequest) String() string {
 func (*RegisterServiceRequest) ProtoMessage() {}
 
 func (x *RegisterServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[4]
+	mi := &file_agent_api_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +523,7 @@ func (x *RegisterServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterServiceRequest.ProtoReflect.Descriptor instead.
 func (*RegisterServiceRequest) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{4}
+	return file_agent_api_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RegisterServiceRequest) GetService() string {
@@ -386,7 +570,7 @@ type RegisterServiceResponse struct {
 
 func (x *RegisterServiceResponse) Reset() {
 	*x = RegisterServiceResponse{}
-	mi := &file_agent_api_proto_msgTypes[5]
+	mi := &file_agent_api_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +582,7 @@ func (x *RegisterServiceResponse) String() string {
 func (*RegisterServiceResponse) ProtoMessage() {}
 
 func (x *RegisterServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[5]
+	mi := &file_agent_api_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +595,7 @@ func (x *RegisterServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterServiceResponse.ProtoReflect.Descriptor instead.
 func (*RegisterServiceResponse) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{5}
+	return file_agent_api_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RegisterServiceResponse) GetService() *ServiceSpec {
@@ -431,7 +615,7 @@ type DeregisterServiceRequest struct {
 
 func (x *DeregisterServiceRequest) Reset() {
 	*x = DeregisterServiceRequest{}
-	mi := &file_agent_api_proto_msgTypes[6]
+	mi := &file_agent_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -443,7 +627,7 @@ func (x *DeregisterServiceRequest) String() string {
 func (*DeregisterServiceRequest) ProtoMessage() {}
 
 func (x *DeregisterServiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[6]
+	mi := &file_agent_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -456,7 +640,7 @@ func (x *DeregisterServiceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeregisterServiceRequest.ProtoReflect.Descriptor instead.
 func (*DeregisterServiceRequest) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{6}
+	return file_agent_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeregisterServiceRequest) GetService() string {
@@ -481,7 +665,7 @@ type DeregisterServiceResponse struct {
 
 func (x *DeregisterServiceResponse) Reset() {
 	*x = DeregisterServiceResponse{}
-	mi := &file_agent_api_proto_msgTypes[7]
+	mi := &file_agent_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -493,7 +677,7 @@ func (x *DeregisterServiceResponse) String() string {
 func (*DeregisterServiceResponse) ProtoMessage() {}
 
 func (x *DeregisterServiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[7]
+	mi := &file_agent_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,191 +690,7 @@ func (x *DeregisterServiceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeregisterServiceResponse.ProtoReflect.Descriptor instead.
 func (*DeregisterServiceResponse) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{7}
-}
-
-type HeartbeatRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *HeartbeatRequest) Reset() {
-	*x = HeartbeatRequest{}
-	mi := &file_agent_api_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HeartbeatRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HeartbeatRequest) ProtoMessage() {}
-
-func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
-func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{8}
-}
-
-type HeartbeatResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *HeartbeatResponse) Reset() {
-	*x = HeartbeatResponse{}
-	mi := &file_agent_api_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HeartbeatResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HeartbeatResponse) ProtoMessage() {}
-
-func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
-func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{9}
-}
-
-type ConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ConfigRequest) Reset() {
-	*x = ConfigRequest{}
-	mi := &file_agent_api_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigRequest) ProtoMessage() {}
-
-func (x *ConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigRequest.ProtoReflect.Descriptor instead.
-func (*ConfigRequest) Descriptor() ([]byte, []int) {
-	return file_agent_api_proto_rawDescGZIP(), []int{10}
-}
-
-type ConfigResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Certificate     []byte                 `protobuf:"bytes,1,opt,name=certificate" json:"certificate,omitempty"`
-	Key             []byte                 `protobuf:"bytes,2,opt,name=key" json:"key,omitempty"`
-	HeartbeatPeriod *uint32                `protobuf:"varint,3,req,name=heartbeat_period,json=heartbeatPeriod" json:"heartbeat_period,omitempty"`
-	RenewPeriod     *uint64                `protobuf:"varint,4,req,name=renew_period,json=renewPeriod" json:"renew_period,omitempty"`
-	RegistryAddrs   []string               `protobuf:"bytes,5,rep,name=registry_addrs,json=registryAddrs" json:"registry_addrs,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ConfigResponse) Reset() {
-	*x = ConfigResponse{}
-	mi := &file_agent_api_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ConfigResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ConfigResponse) ProtoMessage() {}
-
-func (x *ConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_agent_api_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ConfigResponse.ProtoReflect.Descriptor instead.
-func (*ConfigResponse) Descriptor() ([]byte, []int) {
 	return file_agent_api_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ConfigResponse) GetCertificate() []byte {
-	if x != nil {
-		return x.Certificate
-	}
-	return nil
-}
-
-func (x *ConfigResponse) GetKey() []byte {
-	if x != nil {
-		return x.Key
-	}
-	return nil
-}
-
-func (x *ConfigResponse) GetHeartbeatPeriod() uint32 {
-	if x != nil && x.HeartbeatPeriod != nil {
-		return *x.HeartbeatPeriod
-	}
-	return 0
-}
-
-func (x *ConfigResponse) GetRenewPeriod() uint64 {
-	if x != nil && x.RenewPeriod != nil {
-		return *x.RenewPeriod
-	}
-	return 0
-}
-
-func (x *ConfigResponse) GetRegistryAddrs() []string {
-	if x != nil {
-		return x.RegistryAddrs
-	}
-	return nil
 }
 
 type ResetRequest struct {
@@ -765,6 +765,308 @@ func (*ResetResponse) Descriptor() ([]byte, []int) {
 	return file_agent_api_proto_rawDescGZIP(), []int{13}
 }
 
+type GetDatacenterServicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDatacenterServicesRequest) Reset() {
+	*x = GetDatacenterServicesRequest{}
+	mi := &file_agent_api_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDatacenterServicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDatacenterServicesRequest) ProtoMessage() {}
+
+func (x *GetDatacenterServicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDatacenterServicesRequest.ProtoReflect.Descriptor instead.
+func (*GetDatacenterServicesRequest) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{14}
+}
+
+type GetDatacenterServicesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Services      []*ServiceSpec         `protobuf:"bytes,1,rep,name=services" json:"services,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDatacenterServicesResponse) Reset() {
+	*x = GetDatacenterServicesResponse{}
+	mi := &file_agent_api_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDatacenterServicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDatacenterServicesResponse) ProtoMessage() {}
+
+func (x *GetDatacenterServicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDatacenterServicesResponse.ProtoReflect.Descriptor instead.
+func (*GetDatacenterServicesResponse) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetDatacenterServicesResponse) GetServices() []*ServiceSpec {
+	if x != nil {
+		return x.Services
+	}
+	return nil
+}
+
+type WatchDatacenterServicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchDatacenterServicesRequest) Reset() {
+	*x = WatchDatacenterServicesRequest{}
+	mi := &file_agent_api_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchDatacenterServicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchDatacenterServicesRequest) ProtoMessage() {}
+
+func (x *WatchDatacenterServicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchDatacenterServicesRequest.ProtoReflect.Descriptor instead.
+func (*WatchDatacenterServicesRequest) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{16}
+}
+
+type WatchServiceUpdate struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Service       *ServiceSpec           `protobuf:"bytes,1,req,name=service" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchServiceUpdate) Reset() {
+	*x = WatchServiceUpdate{}
+	mi := &file_agent_api_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchServiceUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchServiceUpdate) ProtoMessage() {}
+
+func (x *WatchServiceUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchServiceUpdate.ProtoReflect.Descriptor instead.
+func (*WatchServiceUpdate) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *WatchServiceUpdate) GetService() *ServiceSpec {
+	if x != nil {
+		return x.Service
+	}
+	return nil
+}
+
+type WatchServiceDelete struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ServiceName   *string                `protobuf:"bytes,1,req,name=service_name,json=serviceName" json:"service_name,omitempty"`
+	Node          *string                `protobuf:"bytes,2,req,name=node" json:"node,omitempty"`
+	Instance      *string                `protobuf:"bytes,3,req,name=instance" json:"instance,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchServiceDelete) Reset() {
+	*x = WatchServiceDelete{}
+	mi := &file_agent_api_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchServiceDelete) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchServiceDelete) ProtoMessage() {}
+
+func (x *WatchServiceDelete) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchServiceDelete.ProtoReflect.Descriptor instead.
+func (*WatchServiceDelete) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *WatchServiceDelete) GetServiceName() string {
+	if x != nil && x.ServiceName != nil {
+		return *x.ServiceName
+	}
+	return ""
+}
+
+func (x *WatchServiceDelete) GetNode() string {
+	if x != nil && x.Node != nil {
+		return *x.Node
+	}
+	return ""
+}
+
+func (x *WatchServiceDelete) GetInstance() string {
+	if x != nil && x.Instance != nil {
+		return *x.Instance
+	}
+	return ""
+}
+
+type WatchDatacenterServicesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Notification:
+	//
+	//	*WatchDatacenterServicesResponse_Update
+	//	*WatchDatacenterServicesResponse_Delete
+	Notification  isWatchDatacenterServicesResponse_Notification `protobuf_oneof:"notification"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchDatacenterServicesResponse) Reset() {
+	*x = WatchDatacenterServicesResponse{}
+	mi := &file_agent_api_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchDatacenterServicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchDatacenterServicesResponse) ProtoMessage() {}
+
+func (x *WatchDatacenterServicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_agent_api_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchDatacenterServicesResponse.ProtoReflect.Descriptor instead.
+func (*WatchDatacenterServicesResponse) Descriptor() ([]byte, []int) {
+	return file_agent_api_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *WatchDatacenterServicesResponse) GetNotification() isWatchDatacenterServicesResponse_Notification {
+	if x != nil {
+		return x.Notification
+	}
+	return nil
+}
+
+func (x *WatchDatacenterServicesResponse) GetUpdate() *WatchServiceUpdate {
+	if x != nil {
+		if x, ok := x.Notification.(*WatchDatacenterServicesResponse_Update); ok {
+			return x.Update
+		}
+	}
+	return nil
+}
+
+func (x *WatchDatacenterServicesResponse) GetDelete() *WatchServiceDelete {
+	if x != nil {
+		if x, ok := x.Notification.(*WatchDatacenterServicesResponse_Delete); ok {
+			return x.Delete
+		}
+	}
+	return nil
+}
+
+type isWatchDatacenterServicesResponse_Notification interface {
+	isWatchDatacenterServicesResponse_Notification()
+}
+
+type WatchDatacenterServicesResponse_Update struct {
+	Update *WatchServiceUpdate `protobuf:"bytes,1,opt,name=update,oneof"`
+}
+
+type WatchDatacenterServicesResponse_Delete struct {
+	Delete *WatchServiceDelete `protobuf:"bytes,2,opt,name=delete,oneof"`
+}
+
+func (*WatchDatacenterServicesResponse_Update) isWatchDatacenterServicesResponse_Notification() {}
+
+func (*WatchDatacenterServicesResponse_Delete) isWatchDatacenterServicesResponse_Notification() {}
+
 var File_agent_api_proto protoreflect.FileDescriptor
 
 const file_agent_api_proto_rawDesc = "" +
@@ -784,7 +1086,16 @@ const file_agent_api_proto_rawDesc = "" +
 	"\x04node\x18\x05 \x02(\tR\x04node\x12\x1c\n" +
 	"\taddresses\x18\x06 \x03(\tR\taddresses\x12\x1f\n" +
 	"\x05ports\x18\a \x03(\v2\t.PortSpecR\x05ports\x12!\n" +
-	"\fmetrics_port\x18\b \x01(\rR\vmetricsPort\"\x97\x01\n" +
+	"\fmetrics_port\x18\b \x01(\rR\vmetricsPort\"\x12\n" +
+	"\x10HeartbeatRequest\"\x13\n" +
+	"\x11HeartbeatResponse\"\x0f\n" +
+	"\rConfigRequest\"\xb9\x01\n" +
+	"\x0eConfigResponse\x12 \n" +
+	"\vcertificate\x18\x01 \x01(\fR\vcertificate\x12\x10\n" +
+	"\x03key\x18\x02 \x01(\fR\x03key\x12)\n" +
+	"\x10heartbeat_period\x18\x03 \x02(\rR\x0fheartbeatPeriod\x12!\n" +
+	"\frenew_period\x18\x04 \x02(\x04R\vrenewPeriod\x12%\n" +
+	"\x0eregistry_addrs\x18\x05 \x03(\tR\rregistryAddrs\"\x97\x01\n" +
 	"\x0fDiscoverRequest\x12\x18\n" +
 	"\aservice\x18\x01 \x02(\tR\aservice\x12\x1a\n" +
 	"\blocation\x18\x02 \x01(\tR\blocation\x12\x1e\n" +
@@ -806,26 +1117,35 @@ const file_agent_api_proto_rawDesc = "" +
 	"\x18DeregisterServiceRequest\x12\x18\n" +
 	"\aservice\x18\x01 \x02(\tR\aservice\x12\x1a\n" +
 	"\binstance\x18\x02 \x02(\tR\binstance\"\x1b\n" +
-	"\x19DeregisterServiceResponse\"\x12\n" +
-	"\x10HeartbeatRequest\"\x13\n" +
-	"\x11HeartbeatResponse\"\x0f\n" +
-	"\rConfigRequest\"\xb9\x01\n" +
-	"\x0eConfigResponse\x12 \n" +
-	"\vcertificate\x18\x01 \x01(\fR\vcertificate\x12\x10\n" +
-	"\x03key\x18\x02 \x01(\fR\x03key\x12)\n" +
-	"\x10heartbeat_period\x18\x03 \x02(\rR\x0fheartbeatPeriod\x12!\n" +
-	"\frenew_period\x18\x04 \x02(\x04R\vrenewPeriod\x12%\n" +
-	"\x0eregistry_addrs\x18\x05 \x03(\tR\rregistryAddrs\"\x0e\n" +
+	"\x19DeregisterServiceResponse\"\x0e\n" +
 	"\fResetRequest\"\x0f\n" +
-	"\rResetResponse2\xd2\x02\n" +
+	"\rResetResponse\"\x1e\n" +
+	"\x1cGetDatacenterServicesRequest\"I\n" +
+	"\x1dGetDatacenterServicesResponse\x12(\n" +
+	"\bservices\x18\x01 \x03(\v2\f.ServiceSpecR\bservices\" \n" +
+	"\x1eWatchDatacenterServicesRequest\"<\n" +
+	"\x12WatchServiceUpdate\x12&\n" +
+	"\aservice\x18\x01 \x02(\v2\f.ServiceSpecR\aservice\"g\n" +
+	"\x12WatchServiceDelete\x12!\n" +
+	"\fservice_name\x18\x01 \x02(\tR\vserviceName\x12\x12\n" +
+	"\x04node\x18\x02 \x02(\tR\x04node\x12\x1a\n" +
+	"\binstance\x18\x03 \x02(\tR\binstance\"\x8f\x01\n" +
+	"\x1fWatchDatacenterServicesResponse\x12-\n" +
+	"\x06update\x18\x01 \x01(\v2\x13.WatchServiceUpdateH\x00R\x06update\x12-\n" +
+	"\x06delete\x18\x02 \x01(\v2\x13.WatchServiceDeleteH\x00R\x06deleteB\x0e\n" +
+	"\fnotification2l\n" +
+	"\aNodeAPI\x124\n" +
+	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12+\n" +
+	"\x06Config\x12\x0e.ConfigRequest\x1a\x0f.ConfigResponse\"\x002\xef\x01\n" +
 	"\bAgentAPI\x121\n" +
 	"\bDiscover\x12\x10.DiscoverRequest\x1a\x11.DiscoverResponse\"\x00\x12?\n" +
 	"\bRegister\x12\x17.RegisterServiceRequest\x1a\x18.RegisterServiceResponse\"\x00\x12E\n" +
 	"\n" +
-	"Deregister\x12\x19.DeregisterServiceRequest\x1a\x1a.DeregisterServiceResponse\"\x00\x124\n" +
-	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12+\n" +
-	"\x06Config\x12\x0e.ConfigRequest\x1a\x0f.ConfigResponse\"\x00\x12(\n" +
-	"\x05Reset\x12\r.ResetRequest\x1a\x0e.ResetResponse\"\x00B\x0fZ\rssle/services"
+	"Deregister\x12\x19.DeregisterServiceRequest\x1a\x1a.DeregisterServiceResponse\"\x00\x12(\n" +
+	"\x05Reset\x12\r.ResetRequest\x1a\x0e.ResetResponse\"\x002\xc9\x01\n" +
+	"\vObserverAPI\x12X\n" +
+	"\x15GetDatacenterServices\x12\x1d.GetDatacenterServicesRequest\x1a\x1e.GetDatacenterServicesResponse\"\x00\x12`\n" +
+	"\x17WatchDatacenterServices\x12\x1f.WatchDatacenterServicesRequest\x1a .WatchDatacenterServicesResponse\"\x000\x01B\x0fZ\rssle/services"
 
 var (
 	file_agent_api_proto_rawDescOnce sync.Once
@@ -839,45 +1159,59 @@ func file_agent_api_proto_rawDescGZIP() []byte {
 	return file_agent_api_proto_rawDescData
 }
 
-var file_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_agent_api_proto_goTypes = []any{
-	(*PortSpec)(nil),                  // 0: PortSpec
-	(*ServiceSpec)(nil),               // 1: ServiceSpec
-	(*DiscoverRequest)(nil),           // 2: DiscoverRequest
-	(*DiscoverResponse)(nil),          // 3: DiscoverResponse
-	(*RegisterServiceRequest)(nil),    // 4: RegisterServiceRequest
-	(*RegisterServiceResponse)(nil),   // 5: RegisterServiceResponse
-	(*DeregisterServiceRequest)(nil),  // 6: DeregisterServiceRequest
-	(*DeregisterServiceResponse)(nil), // 7: DeregisterServiceResponse
-	(*HeartbeatRequest)(nil),          // 8: HeartbeatRequest
-	(*HeartbeatResponse)(nil),         // 9: HeartbeatResponse
-	(*ConfigRequest)(nil),             // 10: ConfigRequest
-	(*ConfigResponse)(nil),            // 11: ConfigResponse
-	(*ResetRequest)(nil),              // 12: ResetRequest
-	(*ResetResponse)(nil),             // 13: ResetResponse
+	(*PortSpec)(nil),                        // 0: PortSpec
+	(*ServiceSpec)(nil),                     // 1: ServiceSpec
+	(*HeartbeatRequest)(nil),                // 2: HeartbeatRequest
+	(*HeartbeatResponse)(nil),               // 3: HeartbeatResponse
+	(*ConfigRequest)(nil),                   // 4: ConfigRequest
+	(*ConfigResponse)(nil),                  // 5: ConfigResponse
+	(*DiscoverRequest)(nil),                 // 6: DiscoverRequest
+	(*DiscoverResponse)(nil),                // 7: DiscoverResponse
+	(*RegisterServiceRequest)(nil),          // 8: RegisterServiceRequest
+	(*RegisterServiceResponse)(nil),         // 9: RegisterServiceResponse
+	(*DeregisterServiceRequest)(nil),        // 10: DeregisterServiceRequest
+	(*DeregisterServiceResponse)(nil),       // 11: DeregisterServiceResponse
+	(*ResetRequest)(nil),                    // 12: ResetRequest
+	(*ResetResponse)(nil),                   // 13: ResetResponse
+	(*GetDatacenterServicesRequest)(nil),    // 14: GetDatacenterServicesRequest
+	(*GetDatacenterServicesResponse)(nil),   // 15: GetDatacenterServicesResponse
+	(*WatchDatacenterServicesRequest)(nil),  // 16: WatchDatacenterServicesRequest
+	(*WatchServiceUpdate)(nil),              // 17: WatchServiceUpdate
+	(*WatchServiceDelete)(nil),              // 18: WatchServiceDelete
+	(*WatchDatacenterServicesResponse)(nil), // 19: WatchDatacenterServicesResponse
 }
 var file_agent_api_proto_depIdxs = []int32{
 	0,  // 0: ServiceSpec.ports:type_name -> PortSpec
 	1,  // 1: DiscoverResponse.services:type_name -> ServiceSpec
 	0,  // 2: RegisterServiceRequest.ports:type_name -> PortSpec
 	1,  // 3: RegisterServiceResponse.service:type_name -> ServiceSpec
-	2,  // 4: AgentAPI.Discover:input_type -> DiscoverRequest
-	4,  // 5: AgentAPI.Register:input_type -> RegisterServiceRequest
-	6,  // 6: AgentAPI.Deregister:input_type -> DeregisterServiceRequest
-	8,  // 7: AgentAPI.Heartbeat:input_type -> HeartbeatRequest
-	10, // 8: AgentAPI.Config:input_type -> ConfigRequest
-	12, // 9: AgentAPI.Reset:input_type -> ResetRequest
-	3,  // 10: AgentAPI.Discover:output_type -> DiscoverResponse
-	5,  // 11: AgentAPI.Register:output_type -> RegisterServiceResponse
-	7,  // 12: AgentAPI.Deregister:output_type -> DeregisterServiceResponse
-	9,  // 13: AgentAPI.Heartbeat:output_type -> HeartbeatResponse
-	11, // 14: AgentAPI.Config:output_type -> ConfigResponse
-	13, // 15: AgentAPI.Reset:output_type -> ResetResponse
-	10, // [10:16] is the sub-list for method output_type
-	4,  // [4:10] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	1,  // 4: GetDatacenterServicesResponse.services:type_name -> ServiceSpec
+	1,  // 5: WatchServiceUpdate.service:type_name -> ServiceSpec
+	17, // 6: WatchDatacenterServicesResponse.update:type_name -> WatchServiceUpdate
+	18, // 7: WatchDatacenterServicesResponse.delete:type_name -> WatchServiceDelete
+	2,  // 8: NodeAPI.Heartbeat:input_type -> HeartbeatRequest
+	4,  // 9: NodeAPI.Config:input_type -> ConfigRequest
+	6,  // 10: AgentAPI.Discover:input_type -> DiscoverRequest
+	8,  // 11: AgentAPI.Register:input_type -> RegisterServiceRequest
+	10, // 12: AgentAPI.Deregister:input_type -> DeregisterServiceRequest
+	12, // 13: AgentAPI.Reset:input_type -> ResetRequest
+	14, // 14: ObserverAPI.GetDatacenterServices:input_type -> GetDatacenterServicesRequest
+	16, // 15: ObserverAPI.WatchDatacenterServices:input_type -> WatchDatacenterServicesRequest
+	3,  // 16: NodeAPI.Heartbeat:output_type -> HeartbeatResponse
+	5,  // 17: NodeAPI.Config:output_type -> ConfigResponse
+	7,  // 18: AgentAPI.Discover:output_type -> DiscoverResponse
+	9,  // 19: AgentAPI.Register:output_type -> RegisterServiceResponse
+	11, // 20: AgentAPI.Deregister:output_type -> DeregisterServiceResponse
+	13, // 21: AgentAPI.Reset:output_type -> ResetResponse
+	15, // 22: ObserverAPI.GetDatacenterServices:output_type -> GetDatacenterServicesResponse
+	19, // 23: ObserverAPI.WatchDatacenterServices:output_type -> WatchDatacenterServicesResponse
+	16, // [16:24] is the sub-list for method output_type
+	8,  // [8:16] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_agent_api_proto_init() }
@@ -885,15 +1219,19 @@ func file_agent_api_proto_init() {
 	if File_agent_api_proto != nil {
 		return
 	}
+	file_agent_api_proto_msgTypes[19].OneofWrappers = []any{
+		(*WatchDatacenterServicesResponse_Update)(nil),
+		(*WatchDatacenterServicesResponse_Delete)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_agent_api_proto_rawDesc), len(file_agent_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   20,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   3,
 		},
 		GoTypes:           file_agent_api_proto_goTypes,
 		DependencyIndexes: file_agent_api_proto_depIdxs,

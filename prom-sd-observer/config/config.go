@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	Dir string `env:"DIR" envDefault:"agent.state"`
+	Dir string `env:"DIR" envDefault:"observer.state"`
 
 	CrtFile string `env:"CERTIFICATE" envDefault:"node.crt"`
 	KeyFile string `env:"KEY" envDefault:"node.key"`
@@ -15,16 +15,13 @@ type Config struct {
 	JoinUrl string `env:"JOIN_URL,required"`
 	CAFile  string `env:"CA_FILE" envDefault:"ca.crt"`
 
-	DNSBindAddr string `env:"DNS_BIND_ADDR" envDefault:"127.0.0.143"`
-	DNSUpstream string `env:"DNS_UPSTREAM" envDefault:"127.0.0.53:53"`
-
-	EventsLog string `env:"EVENTS_LOG" envDefault:"events.log"`
+	TargetsFile string `env:"TARGETS_FILE" envDefault:"targets.json"`
 }
 
 func LoadConfig() Config {
 	var config Config
 	err := env.ParseWithOptions(&config, env.Options{
-		Prefix: "AGENT_",
+		Prefix: "OBSERVER_",
 	})
 	if err != nil {
 		log.Fatalf("Error loading configuration: %v", err)

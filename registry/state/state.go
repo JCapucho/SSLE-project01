@@ -94,7 +94,7 @@ func addHostnameToCert(cert *x509.Certificate, hostname schemas.Hostname) {
 	}
 }
 
-func createNodeCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
+func createPeerCrt(config config.Config, CA tls.Certificate) ([]byte, []byte) {
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic(err.Error())
@@ -237,11 +237,11 @@ func loadStateAgentCA(config config.Config, token []byte, start time.Time) (stri
 	return certFile, keyFile, keyPair
 }
 
-func loadStateNodeCrt(config config.Config, CA tls.Certificate) (string, string, tls.Certificate) {
-	certFile := filepath.Join(config.Dir, "node.crt")
-	keyFile := filepath.Join(config.Dir, "node.key")
+func loadStatePeerCrt(config config.Config, CA tls.Certificate) (string, string, tls.Certificate) {
+	certFile := filepath.Join(config.Dir, "peer.crt")
+	keyFile := filepath.Join(config.Dir, "peer.key")
 
-	crtBytes, keyBytes := createNodeCrt(config, CA)
+	crtBytes, keyBytes := createPeerCrt(config, CA)
 
 	keyPair, err := tls.X509KeyPair(crtBytes, keyBytes)
 	if err != nil {
@@ -250,12 +250,12 @@ func loadStateNodeCrt(config config.Config, CA tls.Certificate) (string, string,
 
 	err = os.WriteFile(certFile, crtBytes, 0600)
 	if err != nil {
-		log.Fatalf("Error: Failed to write Node certificate: %v", err)
+		log.Fatalf("Error: Failed to write peer certificate: %v", err)
 	}
 
 	err = os.WriteFile(keyFile, keyBytes, 0600)
 	if err != nil {
-		log.Fatalf("Error: Failed to write Node key: %v", err)
+		log.Fatalf("Error: Failed to write peer key: %v", err)
 	}
 
 	return certFile, keyFile, keyPair
@@ -270,7 +270,7 @@ func LoadState(config config.Config) State {
 	token, start := loadStateToken(config)
 	caCrtFile, _, CA := loadStateCA(config, token, start)
 	agentCaCrtFile, _, AgentCA := loadStateAgentCA(config, token, start)
-	serverCrtFile, serverKeyFile, serverKeyPair := loadStateNodeCrt(config, CA)
+	serverCrtFile, serverKeyFile, serverKeyPair := loadStatePeerCrt(config, CA)
 
 	return State{
 		Token:   token,

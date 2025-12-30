@@ -35,9 +35,10 @@ const (
 	NodesLeasesNamespace        = "node_lease"
 	PeerAgentApiNamespace       = "peer_agent_api"
 
-	AgentCertificateOU            = "Agents"
-	AgentCertificateExpiry        = 7 * 24 * time.Hour
-	NodeKeepaliveTTL       uint32 = 30
+	AgentCertificateOU           = "Agents"
+	ObserverCertificateOU        = "Observers"
+	NodeCertificateExpiry        = 7 * 24 * time.Hour
+	NodeKeepaliveTTL      uint32 = 30
 )
 
 var (
@@ -68,10 +69,6 @@ func ExtractPeerDatacenterNode(cert *x509.Certificate) (string, string, error) {
 		return "", "", errors.New("Malformed agent certificate")
 	}
 
-	if cert.Subject.OrganizationalUnit[1] != AgentCertificateOU {
-		return "", "", errors.New("Malformed agent certificate")
-	}
-
 	return cert.Subject.OrganizationalUnit[0], cert.Subject.CommonName, nil
 }
 
@@ -99,21 +96,36 @@ func GetNodeSchema(ctx context.Context, etcd *etcdserver.EtcdServer, dc string, 
 	return &node, nil
 }
 
-func AuthenticateAgentFromCertificate(ctx context.Context, cert *x509.Certificate, etcd *etcdserver.EtcdServer) (*schemas.NodeSchema, error) {
+func AuthenticateNodeFromCertificate(ctx context.Context, cert *x509.Certificate, etcd *etcdserver.EtcdServer) (string, *schemas.NodeSchema, error) {
 	dc, name, err := ExtractPeerDatacenterNode(cert)
 	if err != nil {
 		log.Printf("Error getting node auth: %v", err)
-		return nil, AuthFailure
+		return "", nil, AuthFailure
 	}
 
 	node, err := GetNodeSchema(ctx, etcd, dc, name)
 	if err != nil {
 		log.Printf("Error getting node schema: %v", err)
-		return nil, AuthFailure
+		return "", nil, AuthFailure
 	}
 
 	if node == nil {
 		log.Printf("Error getting node schema: %v/%v does not exist", dc, name)
+		return "", nil, AuthFailure
+	}
+
+	return cert.Subject.OrganizationalUnit[1], node, nil
+}
+
+func AuthenticateNode(ctx context.Context, etcd *etcdserver.EtcdServer, implicit string) (*schemas.NodeSchema, error) {
+	cert, err := ExtractPeerCertificate(ctx)
+
+	role, node, err := AuthenticateNodeFromCertificate(ctx, cert, etcd)
+	if err != nil {
+		return nil, err
+	}
+
+	if role != implicit {
 		return nil, AuthFailure
 	}
 
@@ -121,11 +133,11 @@ func AuthenticateAgentFromCertificate(ctx context.Context, cert *x509.Certificat
 }
 
 func AuthenticateAgent(ctx context.Context, etcd *etcdserver.EtcdServer) (*schemas.NodeSchema, error) {
-	cert, err := ExtractPeerCertificate(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return AuthenticateAgentFromCertificate(ctx, cert, etcd)
+	return AuthenticateNode(ctx, etcd, AgentCertificateOU)
+}
+
+func AuthenticateObserver(ctx context.Context, etcd *etcdserver.EtcdServer) (*schemas.NodeSchema, error) {
+	return AuthenticateNode(ctx, etcd, ObserverCertificateOU)
 }
 
 func GetNodeLease(ctx context.Context, etcd *etcdserver.EtcdServer, dc string, nodeName string) (int64, error) {
@@ -230,19 +242,19 @@ func PrefixEnd(prefix []byte) []byte {
 	return end
 }
 
-func CreateAgentCrt(state *state.State, datacenter string, node string) ([]byte, []byte) {
+func CreateNodeCrt(state *state.State, datacenter string, node string, implicit string) ([]byte, []byte) {
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	notBefore := time.Now()
-	notAfter := notBefore.Add(AgentCertificateExpiry)
+	notAfter := notBefore.Add(NodeCertificateExpiry)
 
 	template := x509.Certificate{
 		Subject: pkix.Name{
 			Organization:       []string{"SSLE Project 01"},
-			OrganizationalUnit: []string{AgentCertificateOU, datacenter},
+			OrganizationalUnit: []string{implicit, datacenter},
 			CommonName:         node,
 		},
 		IPAddresses:           []net.IP{},

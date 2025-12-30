@@ -21,6 +21,62 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type NodeType int32
+
+const (
+	NodeType_AGENT    NodeType = 1
+	NodeType_OBSERVER NodeType = 2
+)
+
+// Enum value maps for NodeType.
+var (
+	NodeType_name = map[int32]string{
+		1: "AGENT",
+		2: "OBSERVER",
+	}
+	NodeType_value = map[string]int32{
+		"AGENT":    1,
+		"OBSERVER": 2,
+	}
+)
+
+func (x NodeType) Enum() *NodeType {
+	p := new(NodeType)
+	*p = x
+	return p
+}
+
+func (x NodeType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (NodeType) Descriptor() protoreflect.EnumDescriptor {
+	return file_peer_api_proto_enumTypes[0].Descriptor()
+}
+
+func (NodeType) Type() protoreflect.EnumType {
+	return &file_peer_api_proto_enumTypes[0]
+}
+
+func (x NodeType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Do not use.
+func (x *NodeType) UnmarshalJSON(b []byte) error {
+	num, err := protoimpl.X.UnmarshalJSONEnum(x.Descriptor(), b)
+	if err != nil {
+		return err
+	}
+	*x = NodeType(num)
+	return nil
+}
+
+// Deprecated: Use NodeType.Descriptor instead.
+func (NodeType) EnumDescriptor() ([]byte, []int) {
+	return file_peer_api_proto_rawDescGZIP(), []int{0}
+}
+
 type Peer struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            *string                `protobuf:"bytes,1,req,name=id" json:"id,omitempty"`
@@ -249,29 +305,30 @@ func (*AddSelfPeerResponse) Descriptor() ([]byte, []int) {
 	return file_peer_api_proto_rawDescGZIP(), []int{4}
 }
 
-type AddAgentRequest struct {
+type AddNodeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          *string                `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
 	Datacenter    *string                `protobuf:"bytes,2,req,name=datacenter" json:"datacenter,omitempty"`
 	Location      *string                `protobuf:"bytes,3,req,name=location" json:"location,omitempty"`
+	NodeType      *NodeType              `protobuf:"varint,4,req,name=node_type,json=nodeType,enum=NodeType" json:"node_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddAgentRequest) Reset() {
-	*x = AddAgentRequest{}
+func (x *AddNodeRequest) Reset() {
+	*x = AddNodeRequest{}
 	mi := &file_peer_api_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddAgentRequest) String() string {
+func (x *AddNodeRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddAgentRequest) ProtoMessage() {}
+func (*AddNodeRequest) ProtoMessage() {}
 
-func (x *AddAgentRequest) ProtoReflect() protoreflect.Message {
+func (x *AddNodeRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_peer_api_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -283,33 +340,40 @@ func (x *AddAgentRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddAgentRequest.ProtoReflect.Descriptor instead.
-func (*AddAgentRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AddNodeRequest.ProtoReflect.Descriptor instead.
+func (*AddNodeRequest) Descriptor() ([]byte, []int) {
 	return file_peer_api_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *AddAgentRequest) GetName() string {
+func (x *AddNodeRequest) GetName() string {
 	if x != nil && x.Name != nil {
 		return *x.Name
 	}
 	return ""
 }
 
-func (x *AddAgentRequest) GetDatacenter() string {
+func (x *AddNodeRequest) GetDatacenter() string {
 	if x != nil && x.Datacenter != nil {
 		return *x.Datacenter
 	}
 	return ""
 }
 
-func (x *AddAgentRequest) GetLocation() string {
+func (x *AddNodeRequest) GetLocation() string {
 	if x != nil && x.Location != nil {
 		return *x.Location
 	}
 	return ""
 }
 
-type AddAgentResponse struct {
+func (x *AddNodeRequest) GetNodeType() NodeType {
+	if x != nil && x.NodeType != nil {
+		return *x.NodeType
+	}
+	return NodeType_AGENT
+}
+
+type AddNodeResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Certificate   []byte                 `protobuf:"bytes,1,req,name=certificate" json:"certificate,omitempty"`
 	Key           []byte                 `protobuf:"bytes,2,req,name=key" json:"key,omitempty"`
@@ -317,20 +381,20 @@ type AddAgentResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AddAgentResponse) Reset() {
-	*x = AddAgentResponse{}
+func (x *AddNodeResponse) Reset() {
+	*x = AddNodeResponse{}
 	mi := &file_peer_api_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AddAgentResponse) String() string {
+func (x *AddNodeResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AddAgentResponse) ProtoMessage() {}
+func (*AddNodeResponse) ProtoMessage() {}
 
-func (x *AddAgentResponse) ProtoReflect() protoreflect.Message {
+func (x *AddNodeResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_peer_api_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -342,19 +406,19 @@ func (x *AddAgentResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AddAgentResponse.ProtoReflect.Descriptor instead.
-func (*AddAgentResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use AddNodeResponse.ProtoReflect.Descriptor instead.
+func (*AddNodeResponse) Descriptor() ([]byte, []int) {
 	return file_peer_api_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *AddAgentResponse) GetCertificate() []byte {
+func (x *AddNodeResponse) GetCertificate() []byte {
 	if x != nil {
 		return x.Certificate
 	}
 	return nil
 }
 
-func (x *AddAgentResponse) GetKey() []byte {
+func (x *AddNodeResponse) GetKey() []byte {
 	if x != nil {
 		return x.Key
 	}
@@ -377,20 +441,24 @@ const file_peer_api_proto_rawDesc = "" +
 	"\x05peers\x18\x01 \x03(\v2\x05.PeerR\x05peers\"=\n" +
 	"\x12AddSelfPeerRequest\x12'\n" +
 	"\x0fadvertised_urls\x18\x01 \x03(\tR\x0eadvertisedUrls\"\x15\n" +
-	"\x13AddSelfPeerResponse\"a\n" +
-	"\x0fAddAgentRequest\x12\x12\n" +
+	"\x13AddSelfPeerResponse\"\x88\x01\n" +
+	"\x0eAddNodeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x02(\tR\x04name\x12\x1e\n" +
 	"\n" +
 	"datacenter\x18\x02 \x02(\tR\n" +
 	"datacenter\x12\x1a\n" +
-	"\blocation\x18\x03 \x02(\tR\blocation\"F\n" +
-	"\x10AddAgentResponse\x12 \n" +
+	"\blocation\x18\x03 \x02(\tR\blocation\x12&\n" +
+	"\tnode_type\x18\x04 \x02(\x0e2\t.NodeTypeR\bnodeType\"E\n" +
+	"\x0fAddNodeResponse\x12 \n" +
 	"\vcertificate\x18\x01 \x02(\fR\vcertificate\x12\x10\n" +
-	"\x03key\x18\x02 \x02(\fR\x03key2\xab\x01\n" +
+	"\x03key\x18\x02 \x02(\fR\x03key*#\n" +
+	"\bNodeType\x12\t\n" +
+	"\x05AGENT\x10\x01\x12\f\n" +
+	"\bOBSERVER\x10\x022\xa8\x01\n" +
 	"\aPeerAPI\x121\n" +
 	"\bGetPeers\x12\x10.GetPeersRequest\x1a\x11.GetPeersResponse\"\x00\x12:\n" +
-	"\vAddSelfPeer\x12\x13.AddSelfPeerRequest\x1a\x14.AddSelfPeerResponse\"\x00\x121\n" +
-	"\bAddAgent\x12\x10.AddAgentRequest\x1a\x11.AddAgentResponse\"\x00B\x0fZ\rssle/services"
+	"\vAddSelfPeer\x12\x13.AddSelfPeerRequest\x1a\x14.AddSelfPeerResponse\"\x00\x12.\n" +
+	"\aAddNode\x12\x0f.AddNodeRequest\x1a\x10.AddNodeResponse\"\x00B\x0fZ\rssle/services"
 
 var (
 	file_peer_api_proto_rawDescOnce sync.Once
@@ -404,29 +472,32 @@ func file_peer_api_proto_rawDescGZIP() []byte {
 	return file_peer_api_proto_rawDescData
 }
 
+var file_peer_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_peer_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_peer_api_proto_goTypes = []any{
-	(*Peer)(nil),                // 0: Peer
-	(*GetPeersRequest)(nil),     // 1: GetPeersRequest
-	(*GetPeersResponse)(nil),    // 2: GetPeersResponse
-	(*AddSelfPeerRequest)(nil),  // 3: AddSelfPeerRequest
-	(*AddSelfPeerResponse)(nil), // 4: AddSelfPeerResponse
-	(*AddAgentRequest)(nil),     // 5: AddAgentRequest
-	(*AddAgentResponse)(nil),    // 6: AddAgentResponse
+	(NodeType)(0),               // 0: NodeType
+	(*Peer)(nil),                // 1: Peer
+	(*GetPeersRequest)(nil),     // 2: GetPeersRequest
+	(*GetPeersResponse)(nil),    // 3: GetPeersResponse
+	(*AddSelfPeerRequest)(nil),  // 4: AddSelfPeerRequest
+	(*AddSelfPeerResponse)(nil), // 5: AddSelfPeerResponse
+	(*AddNodeRequest)(nil),      // 6: AddNodeRequest
+	(*AddNodeResponse)(nil),     // 7: AddNodeResponse
 }
 var file_peer_api_proto_depIdxs = []int32{
-	0, // 0: GetPeersResponse.peers:type_name -> Peer
-	1, // 1: PeerAPI.GetPeers:input_type -> GetPeersRequest
-	3, // 2: PeerAPI.AddSelfPeer:input_type -> AddSelfPeerRequest
-	5, // 3: PeerAPI.AddAgent:input_type -> AddAgentRequest
-	2, // 4: PeerAPI.GetPeers:output_type -> GetPeersResponse
-	4, // 5: PeerAPI.AddSelfPeer:output_type -> AddSelfPeerResponse
-	6, // 6: PeerAPI.AddAgent:output_type -> AddAgentResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 0: GetPeersResponse.peers:type_name -> Peer
+	0, // 1: AddNodeRequest.node_type:type_name -> NodeType
+	2, // 2: PeerAPI.GetPeers:input_type -> GetPeersRequest
+	4, // 3: PeerAPI.AddSelfPeer:input_type -> AddSelfPeerRequest
+	6, // 4: PeerAPI.AddNode:input_type -> AddNodeRequest
+	3, // 5: PeerAPI.GetPeers:output_type -> GetPeersResponse
+	5, // 6: PeerAPI.AddSelfPeer:output_type -> AddSelfPeerResponse
+	7, // 7: PeerAPI.AddNode:output_type -> AddNodeResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_peer_api_proto_init() }
@@ -439,13 +510,14 @@ func file_peer_api_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_peer_api_proto_rawDesc), len(file_peer_api_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_peer_api_proto_goTypes,
 		DependencyIndexes: file_peer_api_proto_depIdxs,
+		EnumInfos:         file_peer_api_proto_enumTypes,
 		MessageInfos:      file_peer_api_proto_msgTypes,
 	}.Build()
 	File_peer_api_proto = out.File

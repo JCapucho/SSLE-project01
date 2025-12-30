@@ -89,7 +89,7 @@ func (server *PeerAPIServer) AddSelfPeer(ctx context.Context, req *pb.AddSelfPee
 	return &pb.AddSelfPeerResponse{}, nil
 }
 
-func (server *PeerAPIServer) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.AddAgentResponse, error) {
+func (server *PeerAPIServer) AddNode(ctx context.Context, req *pb.AddNodeRequest) (*pb.AddNodeResponse, error) {
 	nodeKey := fmt.Appendf(nil, "%s/%s/%s", utils.NodesNamespace, *req.Datacenter, *req.Name)
 
 	node := schemas.NodeSchema{
@@ -131,13 +131,22 @@ func (server *PeerAPIServer) AddAgent(ctx context.Context, req *pb.AddAgentReque
 		return nil, AgentAlreadyExistsError
 	}
 
-	crt, key := utils.CreateAgentCrt(
+	var implicit string
+	switch *req.NodeType {
+	case pb.NodeType_AGENT:
+		implicit = utils.AgentCertificateOU
+	case pb.NodeType_OBSERVER:
+		implicit = utils.ObserverCertificateOU
+	}
+
+	crt, key := utils.CreateNodeCrt(
 		server.State,
 		*req.Datacenter,
 		*req.Name,
+		implicit,
 	)
 
-	return &pb.AddAgentResponse{
+	return &pb.AddNodeResponse{
 		Certificate: crt,
 		Key:         key,
 	}, nil

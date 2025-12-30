@@ -22,7 +22,9 @@ type AgentAPIServer struct {
 }
 
 func StartApiServer(config *config.Config, state *state.State, etcdServer *etcdserver.EtcdServer) {
+	nodeApiServer := NodeAPIServer{State: state, EtcdServer: etcdServer}
 	agentApiServer := AgentAPIServer{State: state, EtcdServer: etcdServer}
+	observerApiServer := ObserverAPIServer{State: state, EtcdServer: etcdServer}
 
 	cert, err := tls.LoadX509KeyPair(state.ServerCrtFile, state.ServerKeyFile)
 	if err != nil {
@@ -45,7 +47,9 @@ func StartApiServer(config *config.Config, state *state.State, etcdServer *etcds
 	})
 
 	grpcServer := grpc.NewServer(grpc.Creds(transportCred))
+	pb.RegisterNodeAPIServer(grpcServer, &nodeApiServer)
 	pb.RegisterAgentAPIServer(grpcServer, &agentApiServer)
+	pb.RegisterObserverAPIServer(grpcServer, &observerApiServer)
 
 	go func() {
 		err = grpcServer.Serve(lis)

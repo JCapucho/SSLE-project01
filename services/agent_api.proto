@@ -19,6 +19,23 @@ message ServiceSpec {
     optional uint32 metrics_port = 8;
 }
 
+message HeartbeatRequest {}
+message HeartbeatResponse {}
+
+message ConfigRequest {}
+message ConfigResponse {
+    optional bytes certificate = 1;
+    optional bytes key = 2;
+    required uint32 heartbeat_period = 3;
+    required uint64 renew_period = 4;
+    repeated string registry_addrs = 5;
+}
+
+service NodeAPI {
+   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
+   rpc Config(ConfigRequest) returns (ConfigResponse) {}
+}
+
 message DiscoverRequest {
     required string service = 1;
     optional string location = 2;
@@ -49,18 +66,6 @@ message DeregisterServiceRequest {
 }
 message DeregisterServiceResponse {}
 
-message HeartbeatRequest {}
-message HeartbeatResponse {}
-
-message ConfigRequest {}
-message ConfigResponse {
-    optional bytes certificate = 1;
-    optional bytes key = 2;
-    required uint32 heartbeat_period = 3;
-    required uint64 renew_period = 4;
-    repeated string registry_addrs = 5;
-}
-
 message ResetRequest {}
 message ResetResponse {}
 
@@ -68,7 +73,34 @@ service AgentAPI {
    rpc Discover(DiscoverRequest) returns (DiscoverResponse) {}
    rpc Register(RegisterServiceRequest) returns (RegisterServiceResponse) {}
    rpc Deregister(DeregisterServiceRequest) returns (DeregisterServiceResponse) {}
-   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {}
-   rpc Config(ConfigRequest) returns (ConfigResponse) {}
    rpc Reset(ResetRequest) returns (ResetResponse) {}
+}
+
+message GetDatacenterServicesRequest {}
+message GetDatacenterServicesResponse {
+  repeated ServiceSpec services = 1;
+}
+
+message WatchDatacenterServicesRequest {}
+
+message WatchServiceUpdate {
+  required ServiceSpec service = 1;
+}
+
+message WatchServiceDelete {
+  required string service_name = 1;
+  required string node = 2;
+  required string instance = 3;
+}
+
+message WatchDatacenterServicesResponse {
+  oneof notification {
+    WatchServiceUpdate update = 1;
+    WatchServiceDelete delete = 2;
+  }
+}
+
+service ObserverAPI {
+  rpc GetDatacenterServices(GetDatacenterServicesRequest) returns (GetDatacenterServicesResponse) {}
+  rpc WatchDatacenterServices(WatchDatacenterServicesRequest) returns (stream WatchDatacenterServicesResponse) {}
 }

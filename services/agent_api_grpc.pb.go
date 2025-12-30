@@ -19,11 +19,149 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	NodeAPI_Heartbeat_FullMethodName = "/NodeAPI/Heartbeat"
+	NodeAPI_Config_FullMethodName    = "/NodeAPI/Config"
+)
+
+// NodeAPIClient is the client API for NodeAPI service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type NodeAPIClient interface {
+	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	Config(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error)
+}
+
+type nodeAPIClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewNodeAPIClient(cc grpc.ClientConnInterface) NodeAPIClient {
+	return &nodeAPIClient{cc}
+}
+
+func (c *nodeAPIClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HeartbeatResponse)
+	err := c.cc.Invoke(ctx, NodeAPI_Heartbeat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *nodeAPIClient) Config(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ConfigResponse)
+	err := c.cc.Invoke(ctx, NodeAPI_Config_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// NodeAPIServer is the server API for NodeAPI service.
+// All implementations must embed UnimplementedNodeAPIServer
+// for forward compatibility.
+type NodeAPIServer interface {
+	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	Config(context.Context, *ConfigRequest) (*ConfigResponse, error)
+	mustEmbedUnimplementedNodeAPIServer()
+}
+
+// UnimplementedNodeAPIServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedNodeAPIServer struct{}
+
+func (UnimplementedNodeAPIServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedNodeAPIServer) Config(context.Context, *ConfigRequest) (*ConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Config not implemented")
+}
+func (UnimplementedNodeAPIServer) mustEmbedUnimplementedNodeAPIServer() {}
+func (UnimplementedNodeAPIServer) testEmbeddedByValue()                 {}
+
+// UnsafeNodeAPIServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to NodeAPIServer will
+// result in compilation errors.
+type UnsafeNodeAPIServer interface {
+	mustEmbedUnimplementedNodeAPIServer()
+}
+
+func RegisterNodeAPIServer(s grpc.ServiceRegistrar, srv NodeAPIServer) {
+	// If the following call panics, it indicates UnimplementedNodeAPIServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&NodeAPI_ServiceDesc, srv)
+}
+
+func _NodeAPI_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HeartbeatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodeAPIServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NodeAPI_Heartbeat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodeAPIServer).Heartbeat(ctx, req.(*HeartbeatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NodeAPI_Config_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NodeAPIServer).Config(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NodeAPI_Config_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NodeAPIServer).Config(ctx, req.(*ConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// NodeAPI_ServiceDesc is the grpc.ServiceDesc for NodeAPI service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var NodeAPI_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "NodeAPI",
+	HandlerType: (*NodeAPIServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Heartbeat",
+			Handler:    _NodeAPI_Heartbeat_Handler,
+		},
+		{
+			MethodName: "Config",
+			Handler:    _NodeAPI_Config_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "agent_api.proto",
+}
+
+const (
 	AgentAPI_Discover_FullMethodName   = "/AgentAPI/Discover"
 	AgentAPI_Register_FullMethodName   = "/AgentAPI/Register"
 	AgentAPI_Deregister_FullMethodName = "/AgentAPI/Deregister"
-	AgentAPI_Heartbeat_FullMethodName  = "/AgentAPI/Heartbeat"
-	AgentAPI_Config_FullMethodName     = "/AgentAPI/Config"
 	AgentAPI_Reset_FullMethodName      = "/AgentAPI/Reset"
 )
 
@@ -34,8 +172,6 @@ type AgentAPIClient interface {
 	Discover(ctx context.Context, in *DiscoverRequest, opts ...grpc.CallOption) (*DiscoverResponse, error)
 	Register(ctx context.Context, in *RegisterServiceRequest, opts ...grpc.CallOption) (*RegisterServiceResponse, error)
 	Deregister(ctx context.Context, in *DeregisterServiceRequest, opts ...grpc.CallOption) (*DeregisterServiceResponse, error)
-	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
-	Config(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error)
 	Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error)
 }
 
@@ -77,26 +213,6 @@ func (c *agentAPIClient) Deregister(ctx context.Context, in *DeregisterServiceRe
 	return out, nil
 }
 
-func (c *agentAPIClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HeartbeatResponse)
-	err := c.cc.Invoke(ctx, AgentAPI_Heartbeat_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *agentAPIClient) Config(ctx context.Context, in *ConfigRequest, opts ...grpc.CallOption) (*ConfigResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ConfigResponse)
-	err := c.cc.Invoke(ctx, AgentAPI_Config_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *agentAPIClient) Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetResponse)
@@ -114,8 +230,6 @@ type AgentAPIServer interface {
 	Discover(context.Context, *DiscoverRequest) (*DiscoverResponse, error)
 	Register(context.Context, *RegisterServiceRequest) (*RegisterServiceResponse, error)
 	Deregister(context.Context, *DeregisterServiceRequest) (*DeregisterServiceResponse, error)
-	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
-	Config(context.Context, *ConfigRequest) (*ConfigResponse, error)
 	Reset(context.Context, *ResetRequest) (*ResetResponse, error)
 	mustEmbedUnimplementedAgentAPIServer()
 }
@@ -135,12 +249,6 @@ func (UnimplementedAgentAPIServer) Register(context.Context, *RegisterServiceReq
 }
 func (UnimplementedAgentAPIServer) Deregister(context.Context, *DeregisterServiceRequest) (*DeregisterServiceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Deregister not implemented")
-}
-func (UnimplementedAgentAPIServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Heartbeat not implemented")
-}
-func (UnimplementedAgentAPIServer) Config(context.Context, *ConfigRequest) (*ConfigResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Config not implemented")
 }
 func (UnimplementedAgentAPIServer) Reset(context.Context, *ResetRequest) (*ResetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Reset not implemented")
@@ -220,42 +328,6 @@ func _AgentAPI_Deregister_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AgentAPI_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HeartbeatRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentAPIServer).Heartbeat(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AgentAPI_Heartbeat_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentAPIServer).Heartbeat(ctx, req.(*HeartbeatRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AgentAPI_Config_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ConfigRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AgentAPIServer).Config(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AgentAPI_Config_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AgentAPIServer).Config(ctx, req.(*ConfigRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AgentAPI_Reset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResetRequest)
 	if err := dec(in); err != nil {
@@ -294,18 +366,154 @@ var AgentAPI_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AgentAPI_Deregister_Handler,
 		},
 		{
-			MethodName: "Heartbeat",
-			Handler:    _AgentAPI_Heartbeat_Handler,
-		},
-		{
-			MethodName: "Config",
-			Handler:    _AgentAPI_Config_Handler,
-		},
-		{
 			MethodName: "Reset",
 			Handler:    _AgentAPI_Reset_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
+	Metadata: "agent_api.proto",
+}
+
+const (
+	ObserverAPI_GetDatacenterServices_FullMethodName   = "/ObserverAPI/GetDatacenterServices"
+	ObserverAPI_WatchDatacenterServices_FullMethodName = "/ObserverAPI/WatchDatacenterServices"
+)
+
+// ObserverAPIClient is the client API for ObserverAPI service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type ObserverAPIClient interface {
+	GetDatacenterServices(ctx context.Context, in *GetDatacenterServicesRequest, opts ...grpc.CallOption) (*GetDatacenterServicesResponse, error)
+	WatchDatacenterServices(ctx context.Context, in *WatchDatacenterServicesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchDatacenterServicesResponse], error)
+}
+
+type observerAPIClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewObserverAPIClient(cc grpc.ClientConnInterface) ObserverAPIClient {
+	return &observerAPIClient{cc}
+}
+
+func (c *observerAPIClient) GetDatacenterServices(ctx context.Context, in *GetDatacenterServicesRequest, opts ...grpc.CallOption) (*GetDatacenterServicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetDatacenterServicesResponse)
+	err := c.cc.Invoke(ctx, ObserverAPI_GetDatacenterServices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *observerAPIClient) WatchDatacenterServices(ctx context.Context, in *WatchDatacenterServicesRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchDatacenterServicesResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ObserverAPI_ServiceDesc.Streams[0], ObserverAPI_WatchDatacenterServices_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchDatacenterServicesRequest, WatchDatacenterServicesResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ObserverAPI_WatchDatacenterServicesClient = grpc.ServerStreamingClient[WatchDatacenterServicesResponse]
+
+// ObserverAPIServer is the server API for ObserverAPI service.
+// All implementations must embed UnimplementedObserverAPIServer
+// for forward compatibility.
+type ObserverAPIServer interface {
+	GetDatacenterServices(context.Context, *GetDatacenterServicesRequest) (*GetDatacenterServicesResponse, error)
+	WatchDatacenterServices(*WatchDatacenterServicesRequest, grpc.ServerStreamingServer[WatchDatacenterServicesResponse]) error
+	mustEmbedUnimplementedObserverAPIServer()
+}
+
+// UnimplementedObserverAPIServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedObserverAPIServer struct{}
+
+func (UnimplementedObserverAPIServer) GetDatacenterServices(context.Context, *GetDatacenterServicesRequest) (*GetDatacenterServicesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetDatacenterServices not implemented")
+}
+func (UnimplementedObserverAPIServer) WatchDatacenterServices(*WatchDatacenterServicesRequest, grpc.ServerStreamingServer[WatchDatacenterServicesResponse]) error {
+	return status.Error(codes.Unimplemented, "method WatchDatacenterServices not implemented")
+}
+func (UnimplementedObserverAPIServer) mustEmbedUnimplementedObserverAPIServer() {}
+func (UnimplementedObserverAPIServer) testEmbeddedByValue()                     {}
+
+// UnsafeObserverAPIServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ObserverAPIServer will
+// result in compilation errors.
+type UnsafeObserverAPIServer interface {
+	mustEmbedUnimplementedObserverAPIServer()
+}
+
+func RegisterObserverAPIServer(s grpc.ServiceRegistrar, srv ObserverAPIServer) {
+	// If the following call panics, it indicates UnimplementedObserverAPIServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ObserverAPI_ServiceDesc, srv)
+}
+
+func _ObserverAPI_GetDatacenterServices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDatacenterServicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ObserverAPIServer).GetDatacenterServices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ObserverAPI_GetDatacenterServices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ObserverAPIServer).GetDatacenterServices(ctx, req.(*GetDatacenterServicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ObserverAPI_WatchDatacenterServices_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchDatacenterServicesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ObserverAPIServer).WatchDatacenterServices(m, &grpc.GenericServerStream[WatchDatacenterServicesRequest, WatchDatacenterServicesResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ObserverAPI_WatchDatacenterServicesServer = grpc.ServerStreamingServer[WatchDatacenterServicesResponse]
+
+// ObserverAPI_ServiceDesc is the grpc.ServiceDesc for ObserverAPI service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ObserverAPI_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ObserverAPI",
+	HandlerType: (*ObserverAPIServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetDatacenterServices",
+			Handler:    _ObserverAPI_GetDatacenterServices_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "WatchDatacenterServices",
+			Handler:       _ObserverAPI_WatchDatacenterServices_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "agent_api.proto",
 }

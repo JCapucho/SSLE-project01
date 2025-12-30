@@ -17,12 +17,19 @@ message AddSelfPeerRequest {
 }
 message AddSelfPeerResponse {}
 
-message AddAgentRequest {
+enum NodeType {
+  AGENT = 1;
+  OBSERVER = 2;
+}
+
+message AddNodeRequest {
   required string name = 1;
   required string datacenter = 2;
   required string location = 3;
+
+  required NodeType node_type = 4;
 }
-message AddAgentResponse {
+message AddNodeResponse {
   required bytes certificate = 1;
   required bytes key = 2;
 }
@@ -31,5 +38,5 @@ service PeerAPI {
    rpc GetPeers(GetPeersRequest) returns (GetPeersResponse) {}
    rpc AddSelfPeer(AddSelfPeerRequest) returns (AddSelfPeerResponse) {}
 
-   rpc AddAgent(AddAgentRequest) returns (AddAgentResponse) {}
+   rpc AddNode(AddNodeRequest) returns (AddNodeResponse) {}
 }

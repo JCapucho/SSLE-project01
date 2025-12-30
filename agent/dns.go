@@ -66,7 +66,7 @@ func (h *ClusterDnsHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, 
 			req.Instance = &parts[queryLastIdx-4]
 		}
 
-		res, err := h.state.RegistryClient.Discover(ctx, req)
+		res, err := h.state.AgentClient.Discover(ctx, req)
 		if err != nil {
 			log.Printf("Error obtaining service: %v", err)
 			r.MsgHeader.Rcode = dns.RcodeNameError
