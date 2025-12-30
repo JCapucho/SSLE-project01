@@ -47,7 +47,11 @@ var (
 	LocalImageErr = errors.New("local image cannot be verified")
 )
 
-func VerifyImageSignature(image *image.InspectResponse, state *state.State) (*verify.VerificationResult, error) {
+func VerifyImageSignature(
+	certId verify.CertificateIdentity,
+	image *image.InspectResponse,
+	state *state.State,
+) (*verify.VerificationResult, error) {
 	bundle, artifactDigest, err := bundleFromImage(image, true, false)
 	if err != nil {
 		return nil, err
@@ -62,7 +66,7 @@ func VerifyImageSignature(image *image.InspectResponse, state *state.State) (*ve
 
 	res, err := state.SignatureVerifier.Verify(
 		bundle,
-		verify.NewPolicy(artifactPolicy, verify.WithCertificateIdentity(*state.SignatureIdentity)),
+		verify.NewPolicy(artifactPolicy, verify.WithCertificateIdentity(certId)),
 	)
 	if err != nil {
 		return nil, err

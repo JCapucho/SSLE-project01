@@ -122,7 +122,6 @@ type State struct {
 	DockerClient   *dockerClient.Client
 
 	SignatureVerifier *verify.Verifier
-	SignatureIdentity *verify.CertificateIdentity
 
 	resolver          *registryResolverBuilder
 	addrsFile         string
@@ -148,11 +147,6 @@ func LoadState(config *config.Config) *State {
 		verify.WithTransparencyLog(1),
 		verify.WithIntegratedTimestamps(1),
 	)
-	if err != nil {
-		panic(err)
-	}
-
-	certID, err := verify.NewShortCertificateIdentity(config.SigningIssuer, "", "", config.SigningSAN)
 	if err != nil {
 		panic(err)
 	}
@@ -184,7 +178,6 @@ func LoadState(config *config.Config) *State {
 		resolver:    resolver,
 
 		SignatureVerifier: verifier,
-		SignatureIdentity: &certID,
 
 		eventsFile: eventsFile,
 	}

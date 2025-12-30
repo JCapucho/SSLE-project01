@@ -16,17 +16,12 @@ import (
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"ssle/agent/config"
 	"ssle/agent/state"
 	pb "ssle/services"
 )
-
-type UnsignedImageEvent struct {
-	Message string `json:"msg"`
-	Image   string `json:"image"`
-	Reason  string `json:"reason"`
-}
 
 func HandleEvent(
 	state *state.State,
@@ -35,8 +30,6 @@ func HandleEvent(
 	switch evt.Type {
 	case events.ContainerEventType:
 		handleEventContainer(state, evt)
-	case events.ImageEventType:
-		handleEventImage(state, evt)
 	}
 }
 
@@ -56,7 +49,7 @@ func handleEventContainer(
 			return
 		}
 
-		if checkImage(ctr.Image, state) {
+		if checkImage(&ctr, state) {
 			registerServiceFromContainer(state, &ctr)
 		} else {
 			err := state.DockerClient.ContainerRemove(context.Background(), evt.Actor.ID, container.RemoveOptions{Force: true})
@@ -89,33 +82,41 @@ func handleEventContainer(
 	}
 }
 
-func handleEventImage(
-	state *state.State,
-	evt events.Message,
-) {
-	switch evt.Action {
-	case events.ActionPull:
-		if !checkImage(evt.Actor.ID, state) {
-			removeUnsignedImage(evt.Actor.ID, state)
-		}
-	}
-}
+func checkImage(ctr *container.InspectResponse, state *state.State) bool {
+	issuer := ctr.Config.Labels["ssle.issuer"]
+	san := ctr.Config.Labels["ssle.san"]
 
-func checkImage(imageId string, state *state.State) bool {
-	img, err := state.DockerClient.ImageInspect(context.Background(), imageId)
+	if issuer == "" {
+		log.Printf("Container %s has no signature verification", ctr.Name)
+
+		state.WriteEvent(NoSignatureConfigurationEvent{
+			Message:   "Container does not have signature verification configured",
+			Container: ctr.Name,
+		})
+
+		return true
+	}
+
+	certId, err := verify.NewShortCertificateIdentity(issuer, "", "", san)
+	if err != nil {
+		log.Printf("Invalid signature verification configuration: %v", err)
+		return false
+	}
+
+	img, err := state.DockerClient.ImageInspect(context.Background(), ctr.Image)
 	if err != nil {
 		log.Printf("Failed to inspect image: %v", err)
 		return false
 	}
 
-	res, err := VerifyImageSignature(&img, state)
+	image := ctr.Image
+	if len(img.RepoTags) > 0 {
+		image = img.RepoTags[0]
+	}
+
+	res, err := VerifyImageSignature(certId, &img, state)
 	if err != nil {
 		log.Printf("Failed to verify image: %v", err)
-
-		image := imageId
-		if len(img.RepoTags) > 0 {
-			image = img.RepoTags[0]
-		}
 
 		state.WriteEvent(UnsignedImageEvent{
 			Message: "Unsigned image detected",
@@ -128,7 +129,7 @@ func checkImage(imageId string, state *state.State) bool {
 
 	log.Printf(
 		"Image %s signed by %s",
-		imageId,
+		image,
 		res.Signature.Certificate.SubjectAlternativeName,
 	)
 
@@ -284,15 +285,21 @@ func StartupConsistencyJob(state *state.State) {
 		panic(err)
 	}
 
-	for _, ctr := range containers {
-		if checkImage(ctr.ImageID, state) {
-			registerService(state, ctr.ID)
+	for _, ctrListing := range containers {
+		ctr, err := state.DockerClient.ContainerInspect(context.Background(), ctrListing.ID)
+		if err != nil {
+			log.Printf("Error while retrieving container: %v\n", err)
+			return
+		}
+
+		if checkImage(&ctr, state) {
+			registerServiceFromContainer(state, &ctr)
 		} else {
 			err := state.DockerClient.ContainerRemove(context.Background(), ctr.ID, container.RemoveOptions{Force: true})
 			if err != nil {
 				log.Printf("Failed to stop unsigned container: %v", err)
 			}
-			removeUnsignedImage(ctr.ImageID, state)
+			removeUnsignedImage(ctr.Image, state)
 		}
 	}
 }
