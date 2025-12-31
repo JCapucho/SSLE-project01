@@ -11,6 +11,7 @@ services:
       - "2380:2380"
       - "2381:2381"
       - "2382:2382"
+      - "2383:2383"
     volumes:
       - registry-state:/home/nonroot
 

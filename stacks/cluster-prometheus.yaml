@@ -8,12 +8,26 @@ services:
       - "9090:9090"
     volumes:
       - prometheus-data:/prometheus
-    secrets:
-      - ca-crt
-      - node-token
+      - prometheus-sd:/prometheus-sd
     configs:
       - source: prometheus-config
         target: /etc/prometheus/prometheus.yml
+
+  prom-sd-observer:
+    image: "ghcr.io/jcapucho/ssle/prom-observer:latest"
+    restart: always
+    environment:
+      OBSERVER_JOIN_URL: 10.255.255.15:2383
+      OBSERVER_CA_FILE: /run/secrets/ca-crt
+      OBSERVER_CERTIFICATE: /run/secrets/node-crt
+      OBSERVER_KEY: /run/secrets/node-key
+      OBSERVER_TARGETS_FILE: /prometheus-sd/targets.json
+    secrets:
+      - ca-crt
+      - node-crt
+      - node-key
+    volumes:
+      - prometheus-sd:/prometheus-sd
 
   thanos:
     image: "quay.io/thanos/thanos:v0.40.1"
@@ -26,13 +40,16 @@ services:
       - prometheus-data:/prometheus
 
 volumes:
+  prometheus-sd:
   prometheus-data:
 
 secrets:
   ca-crt:
-    file: ./ca.crt
-  node-token:
-    file: ./node-token
+    file: ./certs/ca.crt
+  node-crt:
+    file: ./certs/node.crt
+  node-key:
+    file: ./certs/node.key
 
 configs:
   prometheus-config:
@@ -44,10 +61,6 @@ configs:
         
       scrape_configs:
       - job_name: registry
-        http_sd_configs:
-        - url: 'https://10.255.255.15:2382/discovery'
-          refresh_interval: 5s
-          authorization:
-            credentials_file: "/run/secrets/node-token"
-          tls_config:
-            ca_file: "/run/secrets/ca-crt"
+        file_sd_configs:
+        - files:
+            - '/prometheus-sd/targets.json'
