@@ -61,7 +61,7 @@ func LoadState(config *config.Config) *State {
 		panic(err)
 	}
 
-	eventsFile, err := os.Create(config.EventsLog)
+	eventsFile, err := os.OpenFile(config.EventsLog, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatalf("Failed to open events log: %v", err)
 	}

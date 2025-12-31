@@ -19,6 +19,7 @@ import (
 	"github.com/sigstore/sigstore-go/pkg/verify"
 
 	"ssle/agent/config"
+	agent_events "ssle/agent/events"
 	"ssle/agent/state"
 	pb "ssle/services"
 )
@@ -88,12 +89,7 @@ func checkImage(ctr *container.InspectResponse, state *state.State) bool {
 
 	if issuer == "" {
 		log.Printf("Container %s has no signature verification", ctr.Name)
-
-		state.WriteEvent(NoSignatureConfigurationEvent{
-			Message:   "Container does not have signature verification configured",
-			Container: ctr.Name,
-		})
-
+		state.WriteEvent(agent_events.NewNoSignatureConfigurationEvent(ctr.Name))
 		return true
 	}
 
@@ -117,13 +113,7 @@ func checkImage(ctr *container.InspectResponse, state *state.State) bool {
 	res, err := VerifyImageSignature(certId, &img, state)
 	if err != nil {
 		log.Printf("Failed to verify image: %v", err)
-
-		state.WriteEvent(UnsignedImageEvent{
-			Message: "Unsigned image detected",
-			Image:   image,
-			Reason:  err.Error(),
-		})
-
+		state.WriteEvent(agent_events.NewUnsignedImageEvent(image, err.Error()))
 		return false
 	}
 
