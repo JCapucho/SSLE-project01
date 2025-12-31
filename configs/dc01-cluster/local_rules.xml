@@ -26,3 +26,15 @@
       <description>APT Persistence</description>
   </rule>
 </group>
+
+<group name="ssle,">
+  <rule id="100030" level="7">
+      <match>Container does not have signature verification configured</match>
+      <description>Container running with no signature verification configured</description>
+  </rule>
+
+  <rule id="100031" level="15">
+      <match>Unsigned image detected</match>
+      <description>Container using image with invalid or missing signature</description>
+  </rule>
+</group>

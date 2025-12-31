@@ -8,6 +8,7 @@ services:
       AGENT_CERTIFICATE: /run/secrets/node-crt
       AGENT_KEY: /run/secrets/node-key
       AGENT_DNS_BIND_ADDR: 0.0.0.0
+      AGENT_EVENTS_LOG: /var/log/ssle/events.json
     ports:
       - 172.17.0.1:53:53/udp
     secrets:
@@ -16,6 +17,7 @@ services:
       - node-key
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /var/log/ssle:/var/log/ssle
 
   exporter:
     image: "quay.io/prometheus/node-exporter:latest"
