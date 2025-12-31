@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"ssle/services"
 
 	"github.com/spf13/cobra"
@@ -44,16 +43,14 @@ func init() {
 			if err != nil {
 				fmt.Printf("Failed to add node: %v\n", err)
 			} else {
-				err = os.WriteFile(nodeCrt, res.Certificate, 0600)
+				err = writeToFile(nodeCrt, res.Certificate)
 				if err != nil {
 					panic(err.Error())
 				}
-				err = os.WriteFile(nodeKey, res.Key, 0600)
+				err = writeToFile(nodeKey, res.Key)
 				if err != nil {
 					panic(err.Error())
 				}
-
-				println("Node added successfully")
 			}
 		},
 	}

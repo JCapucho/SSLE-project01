@@ -92,10 +92,19 @@ func (server *PeerAPIServer) AddSelfPeer(ctx context.Context, req *pb.AddSelfPee
 func (server *PeerAPIServer) AddNode(ctx context.Context, req *pb.AddNodeRequest) (*pb.AddNodeResponse, error) {
 	nodeKey := fmt.Appendf(nil, "%s/%s/%s", utils.NodesNamespace, *req.Datacenter, *req.Name)
 
+	var implicit string
+	switch *req.NodeType {
+	case pb.NodeType_AGENT:
+		implicit = utils.AgentCertificateOU
+	case pb.NodeType_OBSERVER:
+		implicit = utils.ObserverCertificateOU
+	}
+
 	node := schemas.NodeSchema{
 		Name:       *req.Name,
 		Datacenter: *req.Datacenter,
 		Location:   *req.Location,
+		Type:       implicit,
 	}
 
 	serializedNode, err := json.Marshal(node)
@@ -131,14 +140,6 @@ func (server *PeerAPIServer) AddNode(ctx context.Context, req *pb.AddNodeRequest
 		return nil, AgentAlreadyExistsError
 	}
 
-	var implicit string
-	switch *req.NodeType {
-	case pb.NodeType_AGENT:
-		implicit = utils.AgentCertificateOU
-	case pb.NodeType_OBSERVER:
-		implicit = utils.ObserverCertificateOU
-	}
-
 	crt, key := utils.CreateNodeCrt(
 		server.State,
 		*req.Datacenter,
@@ -147,6 +148,26 @@ func (server *PeerAPIServer) AddNode(ctx context.Context, req *pb.AddNodeRequest
 	)
 
 	return &pb.AddNodeResponse{
+		Certificate: crt,
+		Key:         key,
+	}, nil
+}
+
+func (server *PeerAPIServer) GetNodeCredentials(ctx context.Context, req *pb.GetNodeCredentialsRequest) (*pb.GetNodeCredentialsResponse, error) {
+	node, err := utils.GetNodeSchema(ctx, server.EtcdServer, *req.Datacenter, *req.Name)
+	if err != nil {
+		log.Print(err.Error())
+		return nil, utils.ServerError
+	}
+
+	crt, key := utils.CreateNodeCrt(
+		server.State,
+		node.Datacenter,
+		node.Name,
+		node.Type,
+	)
+
+	return &pb.GetNodeCredentialsResponse{
 		Certificate: crt,
 		Key:         key,
 	}, nil

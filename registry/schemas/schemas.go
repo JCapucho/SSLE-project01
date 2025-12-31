@@ -11,6 +11,7 @@ type NodeSchema struct {
 	Name       string `json:"name"`
 	Datacenter string `json:"dc"`
 	Location   string `json:"location"`
+	Type       string `json:type`
 }
 
 type Hostname struct {

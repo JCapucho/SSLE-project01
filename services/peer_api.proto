@@ -34,9 +34,19 @@ message AddNodeResponse {
   required bytes key = 2;
 }
 
+message GetNodeCredentialsRequest {
+  required string name = 1;
+  required string datacenter = 2;
+}
+message GetNodeCredentialsResponse {
+  required bytes certificate = 1;
+  required bytes key = 2;
+}
+
 service PeerAPI {
    rpc GetPeers(GetPeersRequest) returns (GetPeersResponse) {}
    rpc AddSelfPeer(AddSelfPeerRequest) returns (AddSelfPeerResponse) {}
 
    rpc AddNode(AddNodeRequest) returns (AddNodeResponse) {}
+   rpc GetNodeCredentials(GetNodeCredentialsRequest) returns (GetNodeCredentialsResponse) {}
 }

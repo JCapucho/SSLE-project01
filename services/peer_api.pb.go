@@ -425,6 +425,110 @@ func (x *AddNodeResponse) GetKey() []byte {
 	return nil
 }
 
+type GetNodeCredentialsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          *string                `protobuf:"bytes,1,req,name=name" json:"name,omitempty"`
+	Datacenter    *string                `protobuf:"bytes,2,req,name=datacenter" json:"datacenter,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeCredentialsRequest) Reset() {
+	*x = GetNodeCredentialsRequest{}
+	mi := &file_peer_api_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeCredentialsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeCredentialsRequest) ProtoMessage() {}
+
+func (x *GetNodeCredentialsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_peer_api_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeCredentialsRequest.ProtoReflect.Descriptor instead.
+func (*GetNodeCredentialsRequest) Descriptor() ([]byte, []int) {
+	return file_peer_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetNodeCredentialsRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *GetNodeCredentialsRequest) GetDatacenter() string {
+	if x != nil && x.Datacenter != nil {
+		return *x.Datacenter
+	}
+	return ""
+}
+
+type GetNodeCredentialsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Certificate   []byte                 `protobuf:"bytes,1,req,name=certificate" json:"certificate,omitempty"`
+	Key           []byte                 `protobuf:"bytes,2,req,name=key" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeCredentialsResponse) Reset() {
+	*x = GetNodeCredentialsResponse{}
+	mi := &file_peer_api_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeCredentialsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeCredentialsResponse) ProtoMessage() {}
+
+func (x *GetNodeCredentialsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_peer_api_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeCredentialsResponse.ProtoReflect.Descriptor instead.
+func (*GetNodeCredentialsResponse) Descriptor() ([]byte, []int) {
+	return file_peer_api_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetNodeCredentialsResponse) GetCertificate() []byte {
+	if x != nil {
+		return x.Certificate
+	}
+	return nil
+}
+
+func (x *GetNodeCredentialsResponse) GetKey() []byte {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
 var File_peer_api_proto protoreflect.FileDescriptor
 
 const file_peer_api_proto_rawDesc = "" +
@@ -451,14 +555,23 @@ const file_peer_api_proto_rawDesc = "" +
 	"\tnode_type\x18\x04 \x02(\x0e2\t.NodeTypeR\bnodeType\"E\n" +
 	"\x0fAddNodeResponse\x12 \n" +
 	"\vcertificate\x18\x01 \x02(\fR\vcertificate\x12\x10\n" +
+	"\x03key\x18\x02 \x02(\fR\x03key\"O\n" +
+	"\x19GetNodeCredentialsRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x02(\tR\x04name\x12\x1e\n" +
+	"\n" +
+	"datacenter\x18\x02 \x02(\tR\n" +
+	"datacenter\"P\n" +
+	"\x1aGetNodeCredentialsResponse\x12 \n" +
+	"\vcertificate\x18\x01 \x02(\fR\vcertificate\x12\x10\n" +
 	"\x03key\x18\x02 \x02(\fR\x03key*#\n" +
 	"\bNodeType\x12\t\n" +
 	"\x05AGENT\x10\x01\x12\f\n" +
-	"\bOBSERVER\x10\x022\xa8\x01\n" +
+	"\bOBSERVER\x10\x022\xf9\x01\n" +
 	"\aPeerAPI\x121\n" +
 	"\bGetPeers\x12\x10.GetPeersRequest\x1a\x11.GetPeersResponse\"\x00\x12:\n" +
 	"\vAddSelfPeer\x12\x13.AddSelfPeerRequest\x1a\x14.AddSelfPeerResponse\"\x00\x12.\n" +
-	"\aAddNode\x12\x0f.AddNodeRequest\x1a\x10.AddNodeResponse\"\x00B\x0fZ\rssle/services"
+	"\aAddNode\x12\x0f.AddNodeRequest\x1a\x10.AddNodeResponse\"\x00\x12O\n" +
+	"\x12GetNodeCredentials\x12\x1a.GetNodeCredentialsRequest\x1a\x1b.GetNodeCredentialsResponse\"\x00B\x0fZ\rssle/services"
 
 var (
 	file_peer_api_proto_rawDescOnce sync.Once
@@ -473,16 +586,18 @@ func file_peer_api_proto_rawDescGZIP() []byte {
 }
 
 var file_peer_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_peer_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_peer_api_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_peer_api_proto_goTypes = []any{
-	(NodeType)(0),               // 0: NodeType
-	(*Peer)(nil),                // 1: Peer
-	(*GetPeersRequest)(nil),     // 2: GetPeersRequest
-	(*GetPeersResponse)(nil),    // 3: GetPeersResponse
-	(*AddSelfPeerRequest)(nil),  // 4: AddSelfPeerRequest
-	(*AddSelfPeerResponse)(nil), // 5: AddSelfPeerResponse
-	(*AddNodeRequest)(nil),      // 6: AddNodeRequest
-	(*AddNodeResponse)(nil),     // 7: AddNodeResponse
+	(NodeType)(0),                      // 0: NodeType
+	(*Peer)(nil),                       // 1: Peer
+	(*GetPeersRequest)(nil),            // 2: GetPeersRequest
+	(*GetPeersResponse)(nil),           // 3: GetPeersResponse
+	(*AddSelfPeerRequest)(nil),         // 4: AddSelfPeerRequest
+	(*AddSelfPeerResponse)(nil),        // 5: AddSelfPeerResponse
+	(*AddNodeRequest)(nil),             // 6: AddNodeRequest
+	(*AddNodeResponse)(nil),            // 7: AddNodeResponse
+	(*GetNodeCredentialsRequest)(nil),  // 8: GetNodeCredentialsRequest
+	(*GetNodeCredentialsResponse)(nil), // 9: GetNodeCredentialsResponse
 }
 var file_peer_api_proto_depIdxs = []int32{
 	1, // 0: GetPeersResponse.peers:type_name -> Peer
@@ -490,11 +605,13 @@ var file_peer_api_proto_depIdxs = []int32{
 	2, // 2: PeerAPI.GetPeers:input_type -> GetPeersRequest
 	4, // 3: PeerAPI.AddSelfPeer:input_type -> AddSelfPeerRequest
 	6, // 4: PeerAPI.AddNode:input_type -> AddNodeRequest
-	3, // 5: PeerAPI.GetPeers:output_type -> GetPeersResponse
-	5, // 6: PeerAPI.AddSelfPeer:output_type -> AddSelfPeerResponse
-	7, // 7: PeerAPI.AddNode:output_type -> AddNodeResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
+	8, // 5: PeerAPI.GetNodeCredentials:input_type -> GetNodeCredentialsRequest
+	3, // 6: PeerAPI.GetPeers:output_type -> GetPeersResponse
+	5, // 7: PeerAPI.AddSelfPeer:output_type -> AddSelfPeerResponse
+	7, // 8: PeerAPI.AddNode:output_type -> AddNodeResponse
+	9, // 9: PeerAPI.GetNodeCredentials:output_type -> GetNodeCredentialsResponse
+	6, // [6:10] is the sub-list for method output_type
+	2, // [2:6] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -511,7 +628,7 @@ func file_peer_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_peer_api_proto_rawDesc), len(file_peer_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

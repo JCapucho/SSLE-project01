@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PeerAPI_GetPeers_FullMethodName    = "/PeerAPI/GetPeers"
-	PeerAPI_AddSelfPeer_FullMethodName = "/PeerAPI/AddSelfPeer"
-	PeerAPI_AddNode_FullMethodName     = "/PeerAPI/AddNode"
+	PeerAPI_GetPeers_FullMethodName           = "/PeerAPI/GetPeers"
+	PeerAPI_AddSelfPeer_FullMethodName        = "/PeerAPI/AddSelfPeer"
+	PeerAPI_AddNode_FullMethodName            = "/PeerAPI/AddNode"
+	PeerAPI_GetNodeCredentials_FullMethodName = "/PeerAPI/GetNodeCredentials"
 )
 
 // PeerAPIClient is the client API for PeerAPI service.
@@ -31,6 +32,7 @@ type PeerAPIClient interface {
 	GetPeers(ctx context.Context, in *GetPeersRequest, opts ...grpc.CallOption) (*GetPeersResponse, error)
 	AddSelfPeer(ctx context.Context, in *AddSelfPeerRequest, opts ...grpc.CallOption) (*AddSelfPeerResponse, error)
 	AddNode(ctx context.Context, in *AddNodeRequest, opts ...grpc.CallOption) (*AddNodeResponse, error)
+	GetNodeCredentials(ctx context.Context, in *GetNodeCredentialsRequest, opts ...grpc.CallOption) (*GetNodeCredentialsResponse, error)
 }
 
 type peerAPIClient struct {
@@ -71,6 +73,16 @@ func (c *peerAPIClient) AddNode(ctx context.Context, in *AddNodeRequest, opts ..
 	return out, nil
 }
 
+func (c *peerAPIClient) GetNodeCredentials(ctx context.Context, in *GetNodeCredentialsRequest, opts ...grpc.CallOption) (*GetNodeCredentialsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetNodeCredentialsResponse)
+	err := c.cc.Invoke(ctx, PeerAPI_GetNodeCredentials_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PeerAPIServer is the server API for PeerAPI service.
 // All implementations must embed UnimplementedPeerAPIServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type PeerAPIServer interface {
 	GetPeers(context.Context, *GetPeersRequest) (*GetPeersResponse, error)
 	AddSelfPeer(context.Context, *AddSelfPeerRequest) (*AddSelfPeerResponse, error)
 	AddNode(context.Context, *AddNodeRequest) (*AddNodeResponse, error)
+	GetNodeCredentials(context.Context, *GetNodeCredentialsRequest) (*GetNodeCredentialsResponse, error)
 	mustEmbedUnimplementedPeerAPIServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedPeerAPIServer) AddSelfPeer(context.Context, *AddSelfPeerReque
 }
 func (UnimplementedPeerAPIServer) AddNode(context.Context, *AddNodeRequest) (*AddNodeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddNode not implemented")
+}
+func (UnimplementedPeerAPIServer) GetNodeCredentials(context.Context, *GetNodeCredentialsRequest) (*GetNodeCredentialsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetNodeCredentials not implemented")
 }
 func (UnimplementedPeerAPIServer) mustEmbedUnimplementedPeerAPIServer() {}
 func (UnimplementedPeerAPIServer) testEmbeddedByValue()                 {}
@@ -172,6 +188,24 @@ func _PeerAPI_AddNode_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PeerAPI_GetNodeCredentials_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeCredentialsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PeerAPIServer).GetNodeCredentials(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PeerAPI_GetNodeCredentials_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PeerAPIServer).GetNodeCredentials(ctx, req.(*GetNodeCredentialsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PeerAPI_ServiceDesc is the grpc.ServiceDesc for PeerAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var PeerAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddNode",
 			Handler:    _PeerAPI_AddNode_Handler,
+		},
+		{
+			MethodName: "GetNodeCredentials",
+			Handler:    _PeerAPI_GetNodeCredentials_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
