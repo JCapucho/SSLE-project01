@@ -4,7 +4,7 @@ import "time"
 
 const (
 	UNSIGNED_IMAGE_EVENT_CODE       uint = 1
-	NO_SIGNTAURE_CONFIGURATION_CODE uint = 1
+	NO_SIGNTAURE_CONFIGURATION_CODE uint = 2
 )
 
 type baseEvent struct {
